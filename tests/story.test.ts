@@ -19,6 +19,14 @@ describe("demo story graph", () => {
     expect(validateStoryGraph(story, "intro_01")).toEqual([]);
   });
 
+  it("turns every final-page choice into an explicit ledger record", () => {
+    expect(story.choice_pact?.choices?.map((choice) => choice.promise?.status)).toEqual([
+      "active",
+      "active",
+      "withheld"
+    ]);
+  });
+
   it("can still reach every demo ending through real choices", () => {
     const reached = new Set<EndingId>();
 

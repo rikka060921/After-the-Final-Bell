@@ -1,14 +1,17 @@
 import type {
   BackgroundKey,
+  GameMode,
   GameSettings,
   GameStats,
+  NotebookState,
   StatMeta,
   VisibleStatKey
 } from "./types";
 
-export const GAME_VERSION = "0.2.0";
-export const SAVE_VERSION = 2 as const;
-export const SAVE_KEY = "after-evening-study-save-v2";
+export const GAME_VERSION = "0.3.0";
+export const SAVE_VERSION = 3 as const;
+export const SAVE_KEY = "after-evening-study-save-v3";
+export const PREVIOUS_SAVE_KEY = "after-evening-study-save-v2";
 export const LEGACY_SAVE_KEY = "after-evening-study-demo-save-v1";
 
 export const backgrounds: Record<BackgroundKey, string> = {
@@ -32,6 +35,13 @@ export const defaultSettings = (): GameSettings => ({
   speed: 22,
   fontSize: 20,
   reducedMotion: false
+});
+
+export const defaultMode = (): GameMode => "story";
+
+export const defaultNotebookState = (): NotebookState => ({
+  slots: ["solution", "solution", "solution", "message", "message", "blank"],
+  committed: false
 });
 
 export const statMeta: Record<VisibleStatKey, StatMeta> = {

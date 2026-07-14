@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08111e">
-  <meta name="description" content="《晚自习之后》——河南高中校园生活 Galgame 试玩版">
-  <title>晚自习之后 · 试玩版</title>
+  <meta name="description" content="《晚自习之后》——河南县中生活、学业压力与关系成长的浏览器 Galgame">
+  <title>晚自习之后 · 正式序章</title>
 </head>
 <body>
   <main id="game" aria-live="polite">
@@ -22,10 +22,30 @@
         <span>预计 10—15 分钟</span>
       </div>
       <div class="title-actions">
-        <button id="new-game-btn" class="primary-btn">开始试玩</button>
+        <button id="new-game-btn" class="primary-btn">开始序章</button>
         <button id="continue-btn" class="ghost-btn" disabled>继续游戏</button>
       </div>
       <p class="title-note">本故事发生在虚构城市与学校。人物、校名及事件均为虚构。</p>
+    </section>
+
+    <section id="mode-screen" class="screen mode-screen" aria-labelledby="mode-title">
+      <div class="mode-card">
+        <span class="paper-label">答题说明 · 阅读方式</span>
+        <h2 id="mode-title">选择这一次如何读故事</h2>
+        <p class="mode-intro">模式只改变信息透明度，不改变剧情内容，也不会禁止存读档。</p>
+        <div class="mode-options">
+          <button class="mode-option is-recommended" data-mode="story">
+            <strong>故事模式</strong>
+            <span>保留选项下方的语气与风险提示，适合首次阅读。</span>
+            <em>推荐</em>
+          </button>
+          <button class="mode-option" data-mode="county">
+            <strong>县中模式</strong>
+            <span>隐藏选项提示，只根据人物反应与后续结果判断。</span>
+            <em>更沉浸</em>
+          </button>
+        </div>
+      </div>
     </section>
 
     <section id="name-screen" class="screen name-screen" aria-labelledby="name-title">
@@ -35,6 +55,7 @@
         <label for="player-name">姓名</label>
         <input id="player-name" maxlength="6" value="陈舟" autocomplete="off">
         <p>后续对白会使用这个名字。你也可以保留默认姓名。</p>
+        <p id="name-mode-note" class="name-mode-note">当前：故事模式</p>
         <button id="confirm-name-btn" class="ink-btn">写好了</button>
       </div>
     </section>
@@ -45,6 +66,7 @@
         <div class="chapter-mark">
           <strong id="chapter-label">序章</strong>
           <span id="time-label">周四 · 21:37</span>
+          <small id="mode-label">故事模式</small>
         </div>
       </div>
       <div class="countdown">
@@ -84,14 +106,24 @@
         <div class="red-mark">这里少讨论了 a &lt; 0</div>
         <p class="handwriting">“第17题我还是不会。你讲题的时候，比老张温柔一点。”</p>
         <p class="handwriting smaller">—— 周棠</p>
-        <button id="close-notebook-btn" class="ink-btn">合上错题本</button>
+        <div class="notebook-workspace">
+          <p>这一页只剩六格空位。点击每一格，在“题解、留言、留白”之间切换。</p>
+          <div id="notebook-slots" class="notebook-slots" role="group" aria-label="错题本版面分配"></div>
+          <div class="notebook-legend" aria-hidden="true">
+            <span data-slot="solution">题解</span>
+            <span data-slot="message">留言</span>
+            <span data-slot="blank">留白</span>
+          </div>
+          <p id="notebook-summary" class="notebook-summary" aria-live="polite"></p>
+        </div>
+        <button id="close-notebook-btn" class="ink-btn">按这个版面落笔</button>
       </div>
     </section>
 
     <section id="stats-panel" class="side-panel" aria-labelledby="stats-title">
       <div class="panel-header">
         <div>
-          <span class="panel-kicker">一模模式</span>
+          <span id="difficulty-label" class="panel-kicker">故事模式</span>
           <h2 id="stats-title">当前状态</h2>
         </div>
         <button class="close-panel icon-btn" data-close="stats-panel" aria-label="关闭">×</button>
@@ -115,10 +147,22 @@
         <button id="save-btn">快速保存 <kbd>S</kbd></button>
         <button id="load-btn">读取存档 <kbd>L</kbd></button>
         <button id="history-btn">对话记录</button>
+        <button id="ledger-btn">承诺账本</button>
         <button id="settings-btn">阅读设置</button>
         <button id="restart-btn" class="danger-text">返回标题</button>
       </div>
       <p id="save-status" class="save-status">游戏会在每次选择后自动保存。</p>
+    </section>
+
+    <section id="ledger-panel" class="modal-panel" aria-labelledby="ledger-title">
+      <div class="modal-card ledger-card">
+        <div class="panel-header">
+          <div><span class="panel-kicker">PROMISE LEDGER</span><h2 id="ledger-title">承诺账本</h2></div>
+          <button class="close-panel icon-btn" data-close="ledger-panel" aria-label="关闭">×</button>
+        </div>
+        <p class="ledger-intro">说出口的话会占用未来。没有写下的约定，也会被如实保留。</p>
+        <div id="ledger-list" class="ledger-list"></div>
+      </div>
     </section>
 
     <section id="history-panel" class="modal-panel" aria-labelledby="history-title">
@@ -151,16 +195,32 @@
 
     <section id="ending-screen" class="screen ending-screen" aria-labelledby="ending-title">
       <div class="ending-card">
-        <span class="ending-kicker">DEMO ENDING</span>
+        <span class="ending-kicker">PROLOGUE ENDING</span>
         <h2 id="ending-title">十分钟同盟</h2>
         <p id="ending-quote" class="ending-quote"></p>
         <p id="ending-body" class="ending-body"></p>
         <div id="ending-stats" class="ending-stats"></div>
         <div class="ending-actions">
-          <button id="replay-btn" class="primary-btn">重新试玩</button>
+          <button id="carry-forward-btn" class="primary-btn">带着这个开局进入第一章</button>
+          <button id="replay-btn" class="ghost-btn">重新序章</button>
           <button id="title-btn" class="ghost-btn">返回标题</button>
         </div>
-        <p class="demo-future">正式篇将继续至高考、大学、工作与成年后的共同生活。</p>
+        <p class="demo-future">你的选择会被整理成第一章开局档案，而不是在序章结束后作废。</p>
+      </div>
+    </section>
+
+    <section id="opening-profile-screen" class="screen profile-screen" aria-labelledby="profile-title">
+      <div class="profile-card">
+        <span class="ending-kicker">CHAPTER 01 · OPENING PROFILE</span>
+        <h2 id="profile-title">第一章 · 座位表</h2>
+        <p class="profile-hook">第二天 07:10，班主任拿着新座位表走进教室。你昨晚留下的字，已经开始占用今天。</p>
+        <div id="opening-summary" class="opening-summary"></div>
+        <div id="opening-promise" class="opening-promise"></div>
+        <p class="profile-status">开局档案已经写入存档。第一章纵向切片将在下一里程碑从这里继续。</p>
+        <div class="ending-actions">
+          <button id="profile-replay-btn" class="ghost-btn">重新生成序章开局</button>
+          <button id="profile-title-btn" class="ghost-btn">返回标题</button>
+        </div>
       </div>
     </section>
 

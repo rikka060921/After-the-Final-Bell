@@ -310,21 +310,48 @@ export const story: StoryGraph = {
     text: "你在空白页写下——",
     choices: [
       {
+        id: "pact_balance",
         text: "“各自选两个目标，其中一个不能和分数有关。”",
         hint: "可持续的共同计划",
         effects: { study: 2, stress: -3, agency: 6, bond: 4, mutual: 5 },
+        promise: {
+          id: "two-independent-goals",
+          title: "两个目标",
+          summary: "各自选择两个目标，其中至少一个与分数无关。",
+          cadence: "第一章每周复盘一次",
+          pressure: "low",
+          status: "active"
+        },
         next: "pact_balance"
       },
       {
+        id: "pact_tight",
         text: "“每天都见。所有事情都要告诉对方。”",
         hint: "亲密很高 · 边界不足",
         effects: { bond: 6, risk: 4, stress: -2, mutual: -1 },
+        promise: {
+          id: "daily-total-contact",
+          title: "每天都见",
+          summary: "每天见面，并把所有事情告诉对方。",
+          cadence: "每天晚自习后",
+          pressure: "high",
+          status: "active"
+        },
         next: "pact_tight"
       },
       {
+        id: "pact_blank",
         text: "什么也不写，把笔还给她。",
         hint: "保留退路 · 关系降温",
         effects: { study: 3, agency: 2, bond: -3 },
+        promise: {
+          id: "blank-page",
+          title: "保留空白",
+          summary: "今晚不写下约定，也不假装已经准备好。",
+          cadence: "等待双方再次提出",
+          pressure: "low",
+          status: "withheld"
+        },
         next: "pact_blank"
       }
     ]
