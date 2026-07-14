@@ -4,14 +4,17 @@ import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = normalize(fileURLToPath(new URL("../", import.meta.url)));
+const root = normalize(fileURLToPath(new URL("../dist/", import.meta.url)));
 const port = Number(process.env.PORT || 8765);
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".png": "image/png",
-  ".svg": "image/svg+xml"
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".ogg": "audio/ogg",
+  ".mp3": "audio/mpeg"
 };
 
 createServer(async (request, response) => {
@@ -29,5 +32,5 @@ createServer(async (request, response) => {
     response.end("Not found");
   }
 }).listen(port, "127.0.0.1", () => {
-  console.log(`Demo server: http://127.0.0.1:${port}`);
+  console.log(`Production build server: http://127.0.0.1:${port}`);
 });
