@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08111e">
+  <meta name="description" content="《晚自习之后》——河南高中校园生活 Galgame 试玩版">
+  <title>晚自习之后 · 试玩版</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="game" aria-live="polite">
+    <div id="background" class="background" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <section id="title-screen" class="screen title-screen is-visible">
+      <div class="title-kicker">A HENAN HIGH SCHOOL STORY</div>
+      <h1>晚自习之后</h1>
+      <p class="title-subtitle">白天，我们替未来答题。<br>晚自习之后，才轮到我们喜欢彼此。</p>
+      <div class="title-meta">
+        <span>序章 · 错题本里的十分钟</span>
+        <span>预计 10—15 分钟</span>
+      </div>
+      <div class="title-actions">
+        <button id="new-game-btn" class="primary-btn">开始试玩</button>
+        <button id="continue-btn" class="ghost-btn" disabled>继续游戏</button>
+      </div>
+      <p class="title-note">本故事发生在虚构城市与学校。人物、校名及事件均为虚构。</p>
+    </section>
+
+    <section id="name-screen" class="screen name-screen" aria-labelledby="name-title">
+      <div class="paper-card name-card">
+        <span class="paper-label">答题卡 · 姓名栏</span>
+        <h2 id="name-title">在错题本上写下你的名字</h2>
+        <label for="player-name">姓名</label>
+        <input id="player-name" maxlength="6" value="陈舟" autocomplete="off">
+        <p>后续对白会使用这个名字。你也可以保留默认姓名。</p>
+        <button id="confirm-name-btn" class="ink-btn">写好了</button>
+      </div>
+    </section>
+
+    <section id="hud" class="hud" aria-label="游戏状态">
+      <div class="hud-left">
+        <button id="menu-btn" class="icon-btn" aria-label="打开菜单">☰</button>
+        <div class="chapter-mark">
+          <strong id="chapter-label">序章</strong>
+          <span id="time-label">周四 · 21:37</span>
+        </div>
+      </div>
+      <div class="countdown">
+        <span>距一模</span>
+        <strong id="countdown-label">21</strong>
+        <span>天</span>
+      </div>
+      <button id="stats-btn" class="quick-stats" aria-label="查看完整状态">
+        <span><i class="dot study"></i>学业 <b id="quick-study">52</b></span>
+        <span><i class="dot stress"></i>压力 <b id="quick-stress">58</b></span>
+        <span><i class="dot bond"></i>亲密 <b id="quick-bond">8</b></span>
+      </button>
+    </section>
+
+    <img id="portrait" class="portrait" src="assets/images/zhou-tang.png" alt="周棠" hidden>
+
+    <section id="choices" class="choices" aria-label="选择"></section>
+
+    <section id="dialogue-box" class="dialogue-box" tabindex="0" aria-label="对话框">
+      <div class="dialogue-topline">
+        <span id="speaker" class="speaker">旁白</span>
+        <span id="scene-tag" class="scene-tag">高三（7）班</span>
+      </div>
+      <p id="dialogue-text" class="dialogue-text"></p>
+      <div class="dialogue-footer">
+        <span id="progress-label">序章 · 01</span>
+        <span id="next-indicator" class="next-indicator">点击继续⌄</span>
+      </div>
+    </section>
+
+    <section id="notebook-overlay" class="overlay" aria-labelledby="notebook-title">
+      <div class="notebook">
+        <div class="notebook-holes" aria-hidden="true"></div>
+        <span class="notebook-date">11月14日　天气：干冷</span>
+        <h2 id="notebook-title">二次函数 · 错题整理</h2>
+        <div class="math-line">f(x) = ax² + bx + c　　△ = b² − 4ac</div>
+        <div class="red-mark">这里少讨论了 a &lt; 0</div>
+        <p class="handwriting">“第17题我还是不会。你讲题的时候，比老张温柔一点。”</p>
+        <p class="handwriting smaller">—— 周棠</p>
+        <button id="close-notebook-btn" class="ink-btn">合上错题本</button>
+      </div>
+    </section>
+
+    <section id="stats-panel" class="side-panel" aria-labelledby="stats-title">
+      <div class="panel-header">
+        <div>
+          <span class="panel-kicker">一模模式</span>
+          <h2 id="stats-title">当前状态</h2>
+        </div>
+        <button class="close-panel icon-btn" data-close="stats-panel" aria-label="关闭">×</button>
+      </div>
+      <div id="stat-list" class="stat-list"></div>
+      <div class="derived-note">
+        <strong>逆反不是“学习惩罚”</strong>
+        <p>压力过高、缺少休息又没有自主选择时，逆反才会增长。</p>
+      </div>
+    </section>
+
+    <section id="menu-panel" class="side-panel left-panel" aria-labelledby="menu-title">
+      <div class="panel-header">
+        <div>
+          <span class="panel-kicker">SYSTEM</span>
+          <h2 id="menu-title">暂停菜单</h2>
+        </div>
+        <button class="close-panel icon-btn" data-close="menu-panel" aria-label="关闭">×</button>
+      </div>
+      <div class="menu-actions">
+        <button id="save-btn">快速保存 <kbd>S</kbd></button>
+        <button id="load-btn">读取存档 <kbd>L</kbd></button>
+        <button id="history-btn">对话记录</button>
+        <button id="settings-btn">阅读设置</button>
+        <button id="restart-btn" class="danger-text">返回标题</button>
+      </div>
+      <p id="save-status" class="save-status">游戏会在每次选择后自动保存。</p>
+    </section>
+
+    <section id="history-panel" class="modal-panel" aria-labelledby="history-title">
+      <div class="modal-card">
+        <div class="panel-header">
+          <div><span class="panel-kicker">BACKLOG</span><h2 id="history-title">对话记录</h2></div>
+          <button class="close-panel icon-btn" data-close="history-panel" aria-label="关闭">×</button>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </div>
+    </section>
+
+    <section id="settings-panel" class="modal-panel" aria-labelledby="settings-title">
+      <div class="modal-card settings-card">
+        <div class="panel-header">
+          <div><span class="panel-kicker">ACCESSIBILITY</span><h2 id="settings-title">阅读设置</h2></div>
+          <button class="close-panel icon-btn" data-close="settings-panel" aria-label="关闭">×</button>
+        </div>
+        <label>文字速度
+          <input id="speed-range" type="range" min="8" max="42" value="22">
+        </label>
+        <label>字号
+          <input id="font-range" type="range" min="16" max="26" value="20">
+        </label>
+        <label class="toggle-row">减少动态效果
+          <input id="motion-toggle" type="checkbox">
+        </label>
+      </div>
+    </section>
+
+    <section id="ending-screen" class="screen ending-screen" aria-labelledby="ending-title">
+      <div class="ending-card">
+        <span class="ending-kicker">DEMO ENDING</span>
+        <h2 id="ending-title">十分钟同盟</h2>
+        <p id="ending-quote" class="ending-quote"></p>
+        <p id="ending-body" class="ending-body"></p>
+        <div id="ending-stats" class="ending-stats"></div>
+        <div class="ending-actions">
+          <button id="replay-btn" class="primary-btn">重新试玩</button>
+          <button id="title-btn" class="ghost-btn">返回标题</button>
+        </div>
+        <p class="demo-future">正式篇将继续至高考、大学、工作与成年后的共同生活。</p>
+      </div>
+    </section>
+
+    <div id="toast-stack" class="toast-stack" aria-live="assertive"></div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
