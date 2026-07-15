@@ -662,7 +662,7 @@ function showChapterOneState(save = true) {
   gameLocation = chapterLocationForState(chapterOne);
 
   if (chapterOne.phase === "planning") {
-    chapterOneUI.renderPlanner(chapterOne, openingProfile, gameMode);
+    chapterOneUI.renderPlanner(chapterOne, openingProfile, gameMode, longTermProgress);
     revealScreen(dom.planner, "#planner-title");
   } else if (chapterOne.phase === "seat-game") {
     chapterOneUI.renderSeatGame(chapterOne);
@@ -698,7 +698,7 @@ function handleChapterAssignment(slotId: string, activityId: ChapterOneActivityI
   if (!chapterOne) return;
   chapterOne = assignChapterOneActivity(chapterOne, slotId, activityId);
   autoSave();
-  chapterOneUI.renderPlanner(chapterOne, openingProfile!, gameMode);
+  chapterOneUI.renderPlanner(chapterOne, openingProfile!, gameMode, longTermProgress);
   requestAnimationFrame(() =>
     dom.planner.querySelector<HTMLButtonElement>(`[data-slot-id="${slotId}"]`)?.focus()
   );
@@ -708,7 +708,7 @@ function handleChapterReset() {
   if (!chapterOne || !openingProfile) return;
   chapterOne = resetCurrentWeek(chapterOne);
   autoSave();
-  chapterOneUI.renderPlanner(chapterOne, openingProfile, gameMode);
+  chapterOneUI.renderPlanner(chapterOne, openingProfile, gameMode, longTermProgress);
   $("#schedule-status").textContent = "已恢复到本周开始时的承诺占用，其余格重新留白。";
 }
 

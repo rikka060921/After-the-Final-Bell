@@ -8,6 +8,7 @@ import type {
   SentenceAssemblyRecord
 } from "../types";
 import { currentExamStage, thirdHandwritingReveal } from "./exam";
+import { deriveChapterOneContext } from "./context";
 import { activityById, createWeekSlots, getWeekDefinition } from "./model";
 import {
   activitiesForSlot,
@@ -46,7 +47,12 @@ export interface ChapterOneUICallbacks {
 }
 
 export interface ChapterOneUI {
-  renderPlanner(state: ChapterOneState, profile: OpeningProfile, mode: GameMode): void;
+  renderPlanner(
+    state: ChapterOneState,
+    profile: OpeningProfile,
+    mode: GameMode,
+    progress: LongTermProgress
+  ): void;
   renderSeatGame(state: ChapterOneState): void;
   renderSentenceGame(progress: LongTermProgress, mode: GameMode): void;
   renderReview(state: ChapterOneState, progress: LongTermProgress): void;
@@ -153,12 +159,18 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
     requestAnimationFrame(() => slotForm.querySelector<HTMLInputElement>('input[name="slot-activity"]:checked')?.focus());
   }
 
-  function renderPlanner(state: ChapterOneState, profile: OpeningProfile, _mode: GameMode): void {
+  function renderPlanner(
+    state: ChapterOneState,
+    profile: OpeningProfile,
+    _mode: GameMode,
+    progress: LongTermProgress
+  ): void {
     const definition = getWeekDefinition(state.currentWeek);
+    const context = deriveChapterOneContext(state, progress);
     const plan = getWeekPlan(state);
     setText("#planner-title", currentWeekLabel(state));
     setText("#planner-date", definition.dateRange);
-    setText("#planner-prompt", definition.prompt);
+    setText("#planner-prompt", context.prompt);
 
     const weekList = $("#week-progress-list");
     weekList.replaceChildren();
@@ -180,7 +192,7 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
     });
 
     const pressure = $("#pressure-list");
-    pressure.replaceChildren(...definition.pressure.map((line) => {
+    pressure.replaceChildren(...context.pressure.map((line) => {
       const item = document.createElement("li");
       item.textContent = line;
       return item;
@@ -190,6 +202,14 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
     const promiseTitle = document.createElement("strong");
     promiseTitle.textContent = "承诺占用";
     promise.append(promiseTitle, document.createTextNode(promiseSummary(state, profile)));
+
+    setText("#planner-echo-title", context.echoTitle);
+    const echoList = $("#planner-echo-list");
+    echoList.replaceChildren(...context.echoLines.map((line) => {
+      const item = document.createElement("li");
+      item.textContent = line;
+      return item;
+    }));
 
     const slots = createWeekSlots(state.currentWeek);
     const days = $("#schedule-days");
