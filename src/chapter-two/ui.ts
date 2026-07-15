@@ -99,7 +99,9 @@ export function createChapterTwoUI(callbacks: ChapterTwoUICallbacks): ChapterTwo
     BUS_STOPS.forEach((stop, index) => {
       const item = document.createElement("li");
       item.textContent = stop;
-      item.dataset.current = String(index === state.bus.stopIndex);
+      const current = index === state.bus.stopIndex;
+      item.dataset.current = String(current);
+      if (current) item.setAttribute("aria-current", "step");
       stops.append(item);
     });
     setText("#bus-time-state", `剩余 ${state.bus.minutes} 分钟 · ${BUS_STOPS[state.bus.stopIndex]}`);
