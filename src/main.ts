@@ -725,7 +725,7 @@ function handleChapterReset() {
   chapterOne = resetCurrentWeek(chapterOne);
   autoSave();
   chapterOneUI.renderPlanner(chapterOne, openingProfile, gameMode, longTermProgress);
-  $("#schedule-status").textContent = "已恢复到本周开始时的承诺占用，其余格重新留白。";
+  $("#schedule-status").textContent = "已恢复本周开始时的承诺与人物安排，其余格重新留白。";
 }
 
 function handleChapterCommit() {

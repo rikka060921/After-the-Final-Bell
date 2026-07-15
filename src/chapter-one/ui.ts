@@ -234,6 +234,8 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
         button.dataset.slotId = slot.id;
         button.dataset.state = assignment.locked
           ? "promise"
+          : assignment.source === "zhou-tang"
+            ? "zhou"
           : assignment.status === "rescheduled"
             ? "rescheduled"
             : assignment.activityId === "open"
@@ -257,6 +259,8 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
         stateLabel.id = stateId;
         stateLabel.textContent = assignment.locked
           ? "承诺占用 · 需协商改约"
+          : assignment.source === "zhou-tang"
+            ? "周棠提出 · 可调整"
           : assignment.status === "rescheduled"
             ? "周棠已改约 · 可重新安排"
             : assignment.activityId === "open"

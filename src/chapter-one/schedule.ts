@@ -12,6 +12,10 @@ import type {
   ScheduledAssignment
 } from "../types";
 import { ACTIVITIES, activityById, createWeekSlots, getWeekDefinition } from "./model";
+import {
+  selectZhouWeekTwoAction,
+  type ZhouWeekTwoActionId
+} from "./character-actions";
 
 const WEEKS: ChapterOneWeek[] = [1, 2, 3, 4];
 
@@ -209,11 +213,27 @@ function renegotiateDailyContact(state: ChapterOneState): number {
   return changed;
 }
 
+function addOptionalMutualReview(state: ChapterOneState): boolean {
+  const plan = getWeekPlan(state, 3);
+  const slotId = "w3-d2-evening";
+  const current = plan.assignments[slotId];
+  if (!current || current.locked || current.activityId !== "open") return false;
+  plan.assignments[slotId] = {
+    slotId,
+    activityId: "mutual-review",
+    source: "zhou-tang",
+    locked: false,
+    status: "planned"
+  };
+  return true;
+}
+
 function resultForWeek(
   week: ChapterOneWeek,
   counts: Map<ChapterOneActivityId, number>,
   state: ChapterOneState,
-  changedContacts: number
+  changedContacts: number,
+  zhouActionId: ZhouWeekTwoActionId | null
 ) {
   const completed = [...counts.entries()]
     .filter(([id, count]) => id !== "open" && count > 0)
@@ -239,12 +259,11 @@ function resultForWeek(
     };
   }
   if (week === 2) {
-    const promiseId = state.obligations[0]?.promiseId ?? "blank-page";
     const planChange = changedContacts
       ? `周棠把未来 ${changedContacts} 次见面改成留白，并保留周二、周四异步互批。`
-      : promiseId === "blank-page"
+      : zhouActionId === "chapter1-zhou-open-invitation"
         ? "周棠发来一次可以拒绝的互批邀请；她没有把那页空白擅自改成新承诺。"
-        : "周棠把一次见面改成异步互批；她先保护了睡眠，再解释原因。";
+        : "周棠把一次可调整的互批邀请写进下周日历；它不是新承诺，你可以覆盖。";
     return {
       week,
       title: "第二周 · 双向订正",
@@ -258,9 +277,11 @@ function resultForWeek(
       ],
       nextWeek: ["周四走廊约定已经写进日历。", "第17题所在纸页的装订线更松了。"],
       zhouAction:
-        promiseId === "blank-page"
+        zhouActionId === "chapter1-zhou-open-invitation"
           ? "周棠主动提出一次互批，也明确写着：没空就不用回。"
-          : "周棠主动改变计划：今晚不见面，改在错题本里互批。"
+          : changedContacts
+            ? "周棠主动改变计划：减少见面，把一部分改成异步互批。"
+            : "周棠主动留下可覆盖的互批邀请，也保留你拒绝的空间。"
     };
   }
   if (week === 3) {
@@ -358,6 +379,7 @@ export function resolveCurrentWeek(
   const eventId = `chapter1-week-${next.currentWeek}-resolved`;
   next.resolvedEventIds = [...new Set([...next.resolvedEventIds, eventId])];
   let changedContacts = 0;
+  let zhouActionId: ZhouWeekTwoActionId | null = null;
 
   const facts = [eventId];
   if ((counts.get("own-goal") ?? 0) > 0) facts.push("own-goal-practiced");
@@ -372,8 +394,16 @@ export function resolveCurrentWeek(
     if (hasMath) facts.push("chen-explained-math");
     if (hasEnglish) facts.push("zhou-reviewed-english");
     facts.push(hasMath && hasEnglish ? "mutual-help:two-way" : hasMath ? "mutual-help:player-only" : hasEnglish ? "mutual-help:zhou-only" : "mutual-help:none");
-    facts.push("zhou-changed-plan");
-    changedContacts = renegotiateDailyContact(next);
+    zhouActionId = selectZhouWeekTwoAction(next, nextProgress);
+    if (zhouActionId === "chapter1-zhou-renegotiate-contact") {
+      changedContacts = renegotiateDailyContact(next);
+    } else if (zhouActionId) {
+      addOptionalMutualReview(next);
+    }
+    if (zhouActionId) {
+      facts.push("zhou-changed-plan", zhouActionId);
+      next.resolvedEventIds = [...new Set([...next.resolvedEventIds, zhouActionId])];
+    }
     if (changedContacts) facts.push("daily-contact-renegotiated");
     next.phase = "review";
   } else if (next.currentWeek === 3) {
@@ -385,7 +415,7 @@ export function resolveCurrentWeek(
   }
 
   nextProgress = withFacts(nextProgress, facts);
-  const result = resultForWeek(next.currentWeek, counts, next, changedContacts);
+  const result = resultForWeek(next.currentWeek, counts, next, changedContacts, zhouActionId);
   next.results = [...next.results.filter((candidate) => candidate.week !== next.currentWeek), result];
   return { chapterOne: next, progress: nextProgress, stats: nextStats };
 }

@@ -175,6 +175,30 @@ describe("chapter one schedule", () => {
     });
   });
 
+  it.each(["two-independent-goals", "blank-page"])(
+    "writes Zhou's optional mutual-review invitation into week three for %s",
+    (promiseId) => {
+      const initialized = initializeChapterOne(opening(promiseId));
+      let state = fillThreeOpenSlots(initialized.chapterOne);
+      let progress = initialized.progress;
+      let stats = initialStats();
+      let resolved = resolveCurrentWeek(state, progress, stats);
+      state = playSeatAction(resolved.chapterOne, "take-back");
+      ({ chapterOne: state, progress } = archiveSeatGame(state, resolved.progress));
+      ({ chapterOne: state, progress } = advanceAfterReview(state, progress));
+      state = fillThreeOpenSlots(state);
+      resolved = resolveCurrentWeek(state, progress, resolved.stats);
+      ({ chapterOne: state, progress } = advanceAfterReview(resolved.chapterOne, resolved.progress));
+
+      expect(state.currentWeek).toBe(3);
+      expect(getWeekPlan(state).assignments["w3-d2-evening"]).toMatchObject({
+        activityId: "mutual-review",
+        source: "zhou-tang",
+        locked: false
+      });
+    }
+  );
+
   it.each(["two-independent-goals", "daily-total-contact", "blank-page"])(
     "completes all four weeks for promise %s without a direct score choice",
     (promiseId) => {

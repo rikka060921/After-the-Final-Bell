@@ -632,6 +632,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .time-slot[data-state="promise"] { border-color: rgba(239,169,92,.45); background: repeating-linear-gradient(135deg, rgba(239,169,92,.08) 0 6px, rgba(7,17,29,.88) 6px 12px); }
 .time-slot[data-state="planned"] { border-color: rgba(116,166,216,.48); }
 .time-slot[data-state="rescheduled"] { border-color: rgba(127,194,161,.45); background: repeating-linear-gradient(135deg, rgba(127,194,161,.07) 0 6px, rgba(7,17,29,.88) 6px 12px); }
+.time-slot[data-state="zhou"] { border-color: rgba(116,166,216,.5); background: repeating-linear-gradient(135deg, rgba(116,166,216,.08) 0 6px, rgba(7,17,29,.88) 6px 12px); }
 .slot-time { color: #748895; font-size: var(--ui-caption-size); letter-spacing: .05em; }
 .time-slot strong { color: #dbe5ea; font-size: var(--ui-small-size); line-height: 1.35; }
 .slot-state { color: #91a4b0; font-size: var(--ui-caption-size); line-height: 1.35; }
