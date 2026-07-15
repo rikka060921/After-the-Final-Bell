@@ -11,7 +11,7 @@ import {
   BUS_STOPS,
   RESULT_FRAMINGS
 } from "./model";
-import { busPrelude, messagePrelude, resultReaction } from "./context";
+import { busPrelude, messagePrelude, resultReaction, thirdChapterHook } from "./context";
 
 const $ = <T extends Element = HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector);
@@ -137,7 +137,7 @@ export function createChapterTwoUI(callbacks: ChapterTwoUICallbacks): ChapterTwo
         : "你们这次没有遇见；错开不是关系的结论，而是一条需要重写的路线。";
     setText("#chapter-two-complete-summary", `${outcome} 成绩单解释为 ${state.framing === "full-context" ? "完整说明" : state.framing === "progress-first" ? "先说进步" : "先说压力"}，留言也已写入长期记录。`);
     setText("#chapter-two-complete-message", state.message?.text ?? "你没有留下异步留言。");
-    setText("#chapter-two-complete-hook", "返校第一天，第17题纸页消失。办公室桌面上出现一张裁掉页角的复印件。");
+    setText("#chapter-two-complete-hook", thirdChapterHook(state));
   }
 
   return { renderResult, renderMessage, renderBus, renderComplete };

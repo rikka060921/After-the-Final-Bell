@@ -5,7 +5,7 @@ import { initializeChapterOne } from "../src/chapter-one/opening";
 import { initializeChapterTwo } from "../src/chapter-two/opening";
 import { chooseResultFraming } from "../src/chapter-two/result";
 import { sendAsyncMessage } from "../src/chapter-two/message";
-import { resultReaction, messagePrelude, busPrelude } from "../src/chapter-two/context";
+import { resultReaction, messagePrelude, busPrelude, thirdChapterHook } from "../src/chapter-two/context";
 import type { OpeningProfile } from "../src/types";
 
 function state() {
@@ -42,5 +42,7 @@ describe("chapter two narrative context", () => {
     expect(messagePrelude(framed.chapterTwo)).toContain("疲惫");
     const messaged = sendAsyncMessage(framed.chapterTwo, framed.progress, framed.stats, "promise-solve");
     expect(busPrelude(messaged.chapterTwo)).toContain("解决");
+    messaged.chapterTwo.bus.outcome = "late";
+    expect(thirdChapterHook(messaged.chapterTwo)).toContain("迟到原因");
   });
 });

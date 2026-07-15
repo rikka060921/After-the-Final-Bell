@@ -36,3 +36,15 @@ export function busPrelude(state: ChapterTwoState): string {
   }
   return "你问了一个与自己有关的问题，接下来只能用实际路线证明你不会替她决定。";
 }
+
+export function thirdChapterHook(state: ChapterTwoState): string {
+  if (state.bus.outcome === "met") {
+    return state.message?.id === "ask-plan"
+      ? "返校第一天，她在南站递给你一张公交票根。第17题纸页却已经消失，办公室桌面上出现一张裁掉页角的复印件。"
+      : "你们在南站错峰见面。返校第一天，第17题纸页消失，办公室桌面上出现一张裁掉页角的复印件。";
+  }
+  if (state.bus.outcome === "late") {
+    return "你把迟到原因写进错题本。返校第一天，第17题纸页消失，办公室桌面上出现一张裁掉页角的复印件。";
+  }
+  return "你们没有遇见，只各自留下了一段路线。返校第一天，第17题纸页消失，办公室桌面上出现一张裁掉页角的复印件。";
+}
