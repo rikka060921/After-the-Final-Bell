@@ -6,6 +6,8 @@ import { initializeChapterTwo } from "../src/chapter-two/opening";
 import { chooseResultFraming } from "../src/chapter-two/result";
 import { sendAsyncMessage } from "../src/chapter-two/message";
 import { playBusAction } from "../src/chapter-two/bus";
+import { ASYNC_MESSAGES } from "../src/chapter-two/model";
+import { demoRecap, demoShareText } from "../src/demo-release";
 import type { OpeningProfile } from "../src/types";
 
 function profile(): OpeningProfile {
@@ -67,6 +69,13 @@ describe("chapter two domain slice", () => {
     expect(messaged.progress.facts).toContain("chapter2-message:leave-space");
   });
 
+  it("keeps every displayed async message inside the real eighteen-character budget", () => {
+    ASYNC_MESSAGES.forEach((message) => {
+      expect(Array.from(message.text)).toHaveLength(message.wordCount);
+      expect(message.wordCount).toBeLessThanOrEqual(18);
+    });
+  });
+
   it("resolves a breakfast route as a met or missed outcome from actions", () => {
     const fixture = chapterTwoFixture();
     const framed = chooseResultFraming(fixture.chapterTwo, fixture.progress, fixture.stats, "progress-first");
@@ -89,5 +98,20 @@ describe("chapter two domain slice", () => {
     const messaged = sendAsyncMessage(framed.chapterTwo, framed.progress, framed.stats, "promise-solve");
     const bought = playBusAction(messaged.chapterTwo, messaged.progress, messaged.stats, "buy-breakfast");
     expect(() => playBusAction(bought.chapterTwo, bought.progress, bought.stats, "buy-breakfast")).toThrow();
+  });
+
+  it("builds a complete, shareable recap at the demo endpoint", () => {
+    const fixture = chapterTwoFixture();
+    const framed = chooseResultFraming(fixture.chapterTwo, fixture.progress, fixture.stats, "full-context");
+    const messaged = sendAsyncMessage(framed.chapterTwo, framed.progress, framed.stats, "ask-plan");
+    let current = messaged;
+    while (current.chapterTwo.phase !== "complete") {
+      current = playBusAction(current.chapterTwo, current.progress, current.stats, "wait");
+    }
+    const recap = demoRecap(current.chapterTwo);
+    const shareText = demoShareText(current.chapterTwo, "陈舟");
+    expect(recap.map((item) => item.label)).toEqual(["一模", "成绩单", "留言", "错峰公交"]);
+    expect(shareText).toContain("公开试玩版 v0.6.0");
+    expect(shareText).toContain("第17题，下一次见。");
   });
 });

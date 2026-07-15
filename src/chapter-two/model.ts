@@ -65,8 +65,8 @@ export const ASYNC_MESSAGES: readonly {
   {
     id: "ask-plan",
     label: "问她删掉的大学计划",
-    text: "你刚才删掉的那行大学计划，如果愿意，可以只告诉我你还在考虑什么。",
-    wordCount: 17,
+    text: "大学计划那行，你愿意时再告诉我。",
+    wordCount: 16,
     description: "询问与自己有关的边界，不要求她立刻交出答案。",
     effects: {
       facts: ["chapter2-message:ask-plan"],
@@ -77,8 +77,8 @@ export const ASYNC_MESSAGES: readonly {
   {
     id: "leave-space",
     label: "告诉她可以先不回答",
-    text: "大学的事你可以先不回答。我把自己的计划写好，再把能说的部分留给你。",
-    wordCount: 16,
+    text: "可以先不回答。我也会写好自己的计划。",
+    wordCount: 18,
     description: "先留下空间，再说明自己不会把等待变成催促。",
     effects: {
       facts: ["chapter2-message:leave-space"],
@@ -89,8 +89,8 @@ export const ASYNC_MESSAGES: readonly {
   {
     id: "promise-solve",
     label: "承诺会替她解决",
-    text: "如果是学费或城市的问题，我会想办法解决，你不用一个人扛。",
-    wordCount: 15,
+    text: "学费或城市的问题，我会替你解决。",
+    wordCount: 16,
     description: "听起来很坚定，却可能把她的家庭和未来重新交给你安排。",
     effects: {
       facts: ["chapter2-message:promise-solve"],

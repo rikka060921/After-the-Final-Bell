@@ -32,7 +32,7 @@ export const CHAPTER_CATALOG: readonly ChapterDefinition[] = [
     title: "两份答案",
     summary: "处理一模结果、寒假家庭安排与一次错峰约会。",
     requiresFact: "chapter-one-complete",
-    availability: "in-development"
+    availability: "available"
   },
   {
     id: "chapter-three",

@@ -4,8 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08111e">
-  <meta name="description" content="《晚自习之后》——河南县中生活、学业压力与关系成长的浏览器 Galgame">
-  <title>晚自习之后 · 第一章纵向切片</title>
+  <meta name="description" content="《晚自习之后》公开试玩版——在河南县中的高考倒计时里，学习如何与一个同样疲惫的人相爱。">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="晚自习之后 · 公开试玩版">
+  <meta property="og:description" content="从错题本里的十分钟开始，体验视觉小说、四周排程、一模与错峰公交。">
+  <meta property="og:url" content="https://rikka060921.github.io/After-the-Final-Bell/">
+  <meta property="og:image" content="https://raw.githubusercontent.com/rikka060921/After-the-Final-Bell/main/assets/images/classroom-dusk.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://rikka060921.github.io/After-the-Final-Bell/">
+  <title>晚自习之后 · 公开试玩版</title>
 </head>
 <body>
   <main id="game" aria-label="《晚自习之后》游戏区域">
@@ -15,18 +22,19 @@
 
     <section id="title-screen" class="screen title-screen is-visible">
       <div class="title-kicker">A HENAN HIGH SCHOOL STORY</div>
+      <div id="title-version" class="title-release">公开试玩版</div>
       <h1 id="title-heading" tabindex="-1">晚自习之后</h1>
       <p class="title-subtitle">白天，我们替未来答题。<br>晚自习之后，才轮到我们喜欢彼此。</p>
       <div class="title-meta">
-        <span>序章 · 错题本里的十分钟</span>
-        <span>预计 10—15 分钟</span>
+        <span>序章—第二章 · 纵向试玩</span>
+        <span>自动存档 · 支持重玩</span>
       </div>
       <div class="title-actions">
         <button id="new-game-btn" class="primary-btn">开始序章</button>
         <button id="continue-btn" class="ghost-btn" disabled>继续游戏</button>
         <button id="title-catalog-btn" class="ghost-btn">章节目录</button>
       </div>
-      <p class="title-note">本故事发生在虚构城市与学校。人物、校名及事件均为虚构。</p>
+      <p class="title-note">本试玩包含完整序章、第一章核心四周与第二章短篇流程。故事发生在虚构城市与学校，人物、校名及事件均为虚构。</p>
     </section>
 
     <section id="mode-screen" class="screen mode-screen" hidden inert aria-labelledby="mode-title">
@@ -473,12 +481,24 @@
 
     <section id="chapter-two-complete-screen" class="screen chapter-screen chapter-complete-screen" hidden inert aria-labelledby="chapter-two-complete-title">
       <div class="chapter-complete-card">
-        <span class="ending-kicker">CHAPTER 02 · END</span>
-        <h2 id="chapter-two-complete-title" tabindex="-1">两份答案，都没有替你决定未来</h2>
+        <span class="ending-kicker">PUBLIC DEMO · END</span>
+        <h2 id="chapter-two-complete-title" tabindex="-1">你已经走到本次试玩的铃声之后</h2>
         <p id="chapter-two-complete-summary" class="chapter-hook"></p>
         <blockquote id="chapter-two-complete-message"></blockquote>
         <p id="chapter-two-complete-hook" class="handwriting-reveal"></p>
+        <section class="demo-recap" aria-labelledby="demo-recap-title">
+          <div class="demo-recap-heading">
+            <span id="demo-version">公开试玩版</span>
+            <h3 id="demo-recap-title">本次选择留下的答案</h3>
+          </div>
+          <dl id="demo-recap-list" class="demo-recap-list"></dl>
+        </section>
+        <p class="demo-feedback">感谢玩到这里。试玩版不会上传你的存档；如果愿意，可以在 <a href="https://github.com/rikka060921/After-the-Final-Bell/issues" target="_blank" rel="noreferrer">GitHub Issues</a> 留下体验反馈。</p>
+        <textarea id="demo-copy-fallback" class="demo-copy-fallback" readonly hidden aria-label="可手动复制的试玩总结"></textarea>
+        <p id="demo-copy-status" class="demo-copy-status" role="status" aria-live="polite"></p>
         <div class="ending-actions">
+          <button id="chapter-two-copy-btn" class="primary-btn">复制本次试玩总结</button>
+          <button id="chapter-two-replay-btn" class="ghost-btn">从序章重新开始</button>
           <button id="chapter-two-title-btn" class="ghost-btn">返回标题</button>
         </div>
       </div>

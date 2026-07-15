@@ -1,6 +1,6 @@
 {
   "name": "after-evening-study",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check:content": "vitest run tests/content-integrity.test.ts tests/story.test.ts",
+    "check:release": "npm test && npm run build",
     "test:watch": "vitest"
   },
   "devDependencies": {

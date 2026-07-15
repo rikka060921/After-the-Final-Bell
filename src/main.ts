@@ -2,12 +2,14 @@ import "../styles.css";
 
 import {
   backgrounds,
+  GAME_VERSION,
   defaultMode,
   defaultNotebookState,
   defaultSettings,
   initialStats,
   statMeta
 } from "./config";
+import { demoShareText } from "./demo-release";
 import { endings, resolveEnding } from "./endings";
 import {
   countNotebookSlots,
@@ -926,6 +928,31 @@ function handleChapterTwoBusAction(actionId: BusActionId) {
   }
 }
 
+async function copyDemoSummary(): Promise<void> {
+  if (!chapterTwo || chapterTwo.phase !== "complete") return;
+  const summary = demoShareText(chapterTwo, playerName);
+  const status = $("#demo-copy-status");
+  const fallback = $<HTMLTextAreaElement>("#demo-copy-fallback");
+  fallback.value = summary;
+  fallback.hidden = true;
+  try {
+    if (!navigator.clipboard) throw new Error("Clipboard API unavailable");
+    await Promise.race([
+      navigator.clipboard.writeText(summary),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Clipboard request timed out")), 800);
+      })
+    ]);
+    status.textContent = "试玩总结已复制，可以直接粘贴分享。";
+    tone(760, .08, .025);
+  } catch {
+    fallback.hidden = false;
+    fallback.focus();
+    fallback.select();
+    status.textContent = "浏览器没有允许自动复制，已选中下方文字，请按 Ctrl+C。";
+  }
+}
+
 function saveChapterOneNow() {
   autoSave();
   $("#schedule-status").textContent = "第一章进度已保存。";
@@ -1172,6 +1199,8 @@ chapterTwoUI = createChapterTwoUI({
   onResultFraming: handleChapterTwoFraming,
   onMessage: handleChapterTwoMessage,
   onBusAction: handleChapterTwoBusAction,
+  onCopySummary: () => { void copyDemoSummary(); },
+  onReplay: resetAndReplay,
   onReturnTitle: showTitle
 });
 
@@ -1266,6 +1295,8 @@ document.addEventListener("keydown", (event) => {
 });
 
 Object.values(backgrounds).forEach((src) => { const image = new Image(); image.src = src; });
+$("#title-version").textContent = `公开试玩版 · v${GAME_VERSION}`;
+$("#demo-version").textContent = `PUBLIC DEMO · v${GAME_VERSION}`;
 applySettings();
 applyGameMode();
 updateStatsUI();

@@ -12,6 +12,7 @@ import {
   RESULT_FRAMINGS
 } from "./model";
 import { busPrelude, messagePrelude, resultReaction, thirdChapterHook } from "./context";
+import { demoRecap } from "../demo-release";
 
 const $ = <T extends Element = HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector);
@@ -27,6 +28,8 @@ export interface ChapterTwoUICallbacks {
   onResultFraming(id: ResultFramingId): void;
   onMessage(id: AsyncMessageId): void;
   onBusAction(id: BusActionId): void;
+  onCopySummary(): void;
+  onReplay(): void;
   onReturnTitle(): void;
 }
 
@@ -47,6 +50,8 @@ function describeScore(state: ChapterTwoState, mode: GameMode): string {
 
 export function createChapterTwoUI(callbacks: ChapterTwoUICallbacks): ChapterTwoUI {
   $("#chapter-two-title-btn").addEventListener("click", callbacks.onReturnTitle);
+  $("#chapter-two-copy-btn").addEventListener("click", callbacks.onCopySummary);
+  $("#chapter-two-replay-btn").addEventListener("click", callbacks.onReplay);
 
   function renderResult(state: ChapterTwoState, mode: GameMode): void {
     setText("#chapter-two-score-summary", describeScore(state, mode));
@@ -138,6 +143,18 @@ export function createChapterTwoUI(callbacks: ChapterTwoUICallbacks): ChapterTwo
     setText("#chapter-two-complete-summary", `${outcome} 成绩单解释为 ${state.framing === "full-context" ? "完整说明" : state.framing === "progress-first" ? "先说进步" : "先说压力"}，留言也已写入长期记录。`);
     setText("#chapter-two-complete-message", state.message?.text ?? "你没有留下异步留言。");
     setText("#chapter-two-complete-hook", thirdChapterHook(state));
+    const recap = $("#demo-recap-list");
+    recap.replaceChildren(...demoRecap(state).map((item) => {
+      const row = document.createElement("div");
+      const term = document.createElement("dt");
+      const detail = document.createElement("dd");
+      term.textContent = item.label;
+      detail.textContent = item.value;
+      row.append(term, detail);
+      return row;
+    }));
+    $<HTMLTextAreaElement>("#demo-copy-fallback").hidden = true;
+    setText("#demo-copy-status", "你可以复制一段不含存档数据的试玩总结。");
   }
 
   return { renderResult, renderMessage, renderBus, renderComplete };

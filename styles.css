@@ -45,7 +45,7 @@ html, body {
 button, input { font: inherit; }
 button { color: inherit; }
 
-button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   outline: 2px solid var(--amber);
   outline-offset: 3px;
 }
@@ -118,6 +118,17 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
   letter-spacing: .24em;
   color: var(--amber-soft);
   text-transform: uppercase;
+}
+
+.title-release {
+  width: fit-content;
+  margin-top: 14px;
+  padding: 5px 9px;
+  border: 1px solid rgba(239, 169, 92, .42);
+  color: var(--amber-soft);
+  background: rgba(239, 169, 92, .08);
+  font-size: 11px;
+  letter-spacing: .08em;
 }
 
 .title-screen h1 {
@@ -774,8 +785,20 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .bus-status-card { display: flex; justify-content: space-between; gap: 14px; color: #aebec8; font-size: var(--ui-small-size); }
 .bus-status-card strong { color: var(--amber-soft); }
 .chapter-two-complete-screen blockquote { max-width: 780px; }
+.demo-recap { margin-top: 24px; padding: 18px; border: 1px solid var(--line); background: rgba(255,255,255,.025); }
+.demo-recap-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+.demo-recap-heading span { color: var(--amber); font-size: 10px; letter-spacing: .12em; }
+.demo-recap-heading h3 { margin: 0; color: var(--amber-soft); font-size: 17px; }
+.demo-recap-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 0; }
+.demo-recap-list div { padding: 10px 12px; border-left: 2px solid rgba(239,169,92,.45); background: rgba(0,0,0,.12); }
+.demo-recap-list dt { color: #7f93a3; font-size: 11px; }
+.demo-recap-list dd { margin: 4px 0 0; color: #dce7ed; font-size: 13px; line-height: 1.55; }
+.demo-feedback { color: #8fa0ad; font-size: 12px; line-height: 1.7; }
+.demo-feedback a { color: var(--amber-soft); }
+.demo-copy-fallback { width: 100%; min-height: 150px; padding: 12px; border: 1px solid var(--line); color: #dfe9ef; background: rgba(0,0,0,.28); resize: vertical; }
+.demo-copy-status { min-height: 18px; margin: 10px 0 0; color: #8fa0ad; font-size: 11px; }
 
-.chapter-complete-screen { place-content: center; }
+.chapter-complete-screen { align-content: safe center; justify-content: center; }
 .chapter-complete-card { width: min(820px, 100%); padding: clamp(28px, 5vw, 56px); border: 1px solid var(--line); background: rgba(7,17,30,.92); box-shadow: 0 30px 100px rgba(0,0,0,.48); }
 .chapter-complete-card h2 { margin: 8px 0 20px; color: var(--amber-soft); font-family: "STKaiti", "KaiTi", serif; font-size: clamp(34px, 5vw, 54px); font-weight: 500; }
 .third-hand-route { color: var(--blue); font-size: var(--ui-small-size); letter-spacing: .08em; }
@@ -854,6 +877,8 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   .exam-actions { grid-template-columns: 1fr; }
   .exam-action-btn { min-height: 0; }
   .message-budget, .bus-status-card { display: grid; gap: 5px; }
+  .demo-recap-heading { display: grid; gap: 6px; }
+  .demo-recap-list { grid-template-columns: 1fr; }
 }
 
 @media (min-width: 761px) and (max-width: 1080px) {

@@ -8,7 +8,9 @@ import type {
   VisibleStatKey
 } from "./types";
 
-export const GAME_VERSION = "0.5.0";
+export const GAME_VERSION = "0.6.0";
+export const DEMO_URL = "https://rikka060921.github.io/After-the-Final-Bell/";
+export const REPOSITORY_URL = "https://github.com/rikka060921/After-the-Final-Bell";
 export const SAVE_VERSION = 4 as const;
 export const SAVE_KEY = "after-evening-study-save-v4";
 export const MANUAL_SAVE_KEYS = {

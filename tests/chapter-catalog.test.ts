@@ -9,10 +9,10 @@ describe("chapter catalog", () => {
     expect(chapterAvailability(["prologue-complete"], chapterOne)).toBe("available");
   });
 
-  it("keeps the next chapter visible but clearly in development", () => {
+  it("unlocks the playable second-chapter demo after chapter one", () => {
     const chapters = availableChapters(["prologue-complete", "chapter-one-complete"]);
     expect(chapters.map((chapter) => chapter.id)).toContain("chapter-two");
-    expect(chapters.find((chapter) => chapter.id === "chapter-two")?.availability).toBe("in-development");
+    expect(chapters.find((chapter) => chapter.id === "chapter-two")?.availability).toBe("available");
   });
 
   it("unlocks the third-chapter hook only after the second chapter completes", () => {
