@@ -17,6 +17,18 @@ import {
   notebookSlotLabels
 } from "./notebook";
 import { createOpeningProfile } from "./opening-profile";
+import { currentExamStage, playExamAction } from "./chapter-one/exam";
+import { initializeChapterOne } from "./chapter-one/opening";
+import { defaultLongTermProgress } from "./chapter-one/persistence";
+import {
+  advanceAfterReview,
+  assignActivity as assignChapterOneActivity,
+  resetCurrentWeek,
+  resolveCurrentWeek
+} from "./chapter-one/schedule";
+import { archiveSeatGame, playSeatAction } from "./chapter-one/seat-game";
+import { submitSentenceAssembly } from "./chapter-one/sentence";
+import { createChapterOneUI, type ChapterOneUI } from "./chapter-one/ui";
 import {
   createSaveData,
   hasStoredSave,
@@ -28,14 +40,20 @@ import { story } from "./story";
 import {
   VISIBLE_STAT_KEYS,
   type BackgroundKey,
+  type ChapterOneActivityId,
+  type ChapterOneState,
   type EndingId,
+  type GameLocation,
   type GameMode,
   type GameSettings,
   type GameStats,
   type HistoryEntry,
+  type LongTermProgress,
   type NotebookState,
   type OpeningProfile,
   type PromiseEntry,
+  type SeatActionId,
+  type SentenceAssemblyRecord,
   type StatChange,
   type StatEffects,
   type StoryChoice
@@ -70,6 +88,12 @@ const dom = {
   notebook: $("#notebook-overlay"),
   ending: $("#ending-screen"),
   profile: $("#opening-profile-screen"),
+  planner: $("#chapter-one-planner-screen"),
+  seatGame: $("#seat-game-screen"),
+  sentenceGame: $("#sentence-game-screen"),
+  weekReview: $("#week-review-screen"),
+  exam: $("#exam-screen"),
+  chapterOneComplete: $("#chapter-one-complete-screen"),
   toast: $("#toast-stack")
 };
 
@@ -89,6 +113,10 @@ let notebook: NotebookState = defaultNotebookState();
 let promises: PromiseEntry[] = [];
 let decisionIds: string[] = [];
 let openingProfile: OpeningProfile | null = null;
+let gameLocation: GameLocation = { kind: "story", graphId: "prologue", nodeId: "intro_01" };
+let chapterOne: ChapterOneState | null = null;
+let longTermProgress: LongTermProgress = defaultLongTermProgress();
+let chapterOneUI: ChapterOneUI;
 let audioContext: AudioContext | null = null;
 
 function interpolate(text = ""): string {
@@ -118,19 +146,45 @@ function tone(frequency = 520, duration = .05, volume = .025) {
 }
 
 function hideAllScreens() {
-  $$(".screen").forEach((el) => el.classList.remove("is-visible"));
+  $$<HTMLElement>(".screen").forEach((el) => {
+    el.classList.remove("is-visible");
+    el.hidden = true;
+    el.inert = true;
+  });
+}
+
+function revealScreen(screen: HTMLElement, focusSelector?: string) {
+  screen.hidden = false;
+  screen.inert = false;
+  screen.classList.add("is-visible");
+  if (focusSelector) {
+    requestAnimationFrame(() => screen.querySelector<HTMLElement>(focusSelector)?.focus());
+  }
 }
 
 function openPanel(id: string) {
-  document.getElementById(id)?.classList.add("is-visible");
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  panel.hidden = false;
+  panel.inert = false;
+  panel.classList.add("is-visible");
+  requestAnimationFrame(() => panel.querySelector<HTMLElement>("button, input, [tabindex]")?.focus());
 }
 
 function closePanel(id: string) {
-  document.getElementById(id)?.classList.remove("is-visible");
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  panel.classList.remove("is-visible");
+  panel.inert = true;
+  panel.hidden = true;
 }
 
 function closeTransientPanels() {
-  $$(".side-panel, .modal-panel").forEach((panel) => panel.classList.remove("is-visible"));
+  $$<HTMLElement>(".side-panel, .modal-panel").forEach((panel) => {
+    panel.classList.remove("is-visible");
+    panel.inert = true;
+    panel.hidden = true;
+  });
 }
 
 function showTitle() {
@@ -138,7 +192,7 @@ function showTitle() {
   hideAllScreens();
   closeTransientPanels();
   dom.notebook.classList.remove("is-visible");
-  dom.title.classList.add("is-visible");
+  revealScreen(dom.title, "#title-heading");
   dom.hud.classList.remove("is-visible");
   dom.dialogue.classList.remove("is-visible");
   dom.choices.replaceChildren();
@@ -159,7 +213,7 @@ function applyGameMode() {
 function showModeSelection() {
   hideAllScreens();
   closeTransientPanels();
-  dom.mode.classList.add("is-visible");
+  revealScreen(dom.mode, "h2");
 }
 
 function selectGameMode(mode: GameMode) {
@@ -170,7 +224,7 @@ function selectGameMode(mode: GameMode) {
 
 function showNameEntry() {
   hideAllScreens();
-  dom.name.classList.add("is-visible");
+  revealScreen(dom.name, "#player-name");
   applyGameMode();
   const field = $<HTMLInputElement>("#player-name");
   field.value = playerName;
@@ -189,6 +243,9 @@ function newGame() {
   promises = [];
   decisionIds = [];
   openingProfile = null;
+  chapterOne = null;
+  longTermProgress = defaultLongTermProgress();
+  gameLocation = { kind: "story", graphId: "prologue", nodeId: "intro_01" };
   hideAllScreens();
   dom.hud.classList.add("is-visible");
   dom.dialogue.classList.add("is-visible");
@@ -322,6 +379,7 @@ function goTo(nodeId: string, fromLoad = false) {
   }
   inputLocked = false;
   currentNodeId = nodeId;
+  gameLocation = { kind: "story", graphId: "prologue", nodeId };
   dom.choices.replaceChildren();
   if (node.bg) setBackground(node.bg);
   if (typeof node.portrait === "boolean") setPortrait(node.portrait, node.portraitClass || "");
@@ -543,12 +601,13 @@ function renderOpeningProfile() {
 
 function showOpeningProfile() {
   if (!openingProfile) openingProfile = buildOpeningProfile(resolveEnding(stats));
+  gameLocation = { kind: "opening-profile" };
   hideAllScreens();
   closeTransientPanels();
   dom.hud.classList.remove("is-visible");
   dom.dialogue.classList.remove("is-visible");
   renderOpeningProfile();
-  dom.profile.classList.add("is-visible");
+  revealScreen(dom.profile, "#profile-title");
   autoSave();
 }
 
@@ -575,14 +634,185 @@ function showEnding() {
   const mutualBadge = document.createElement("span");
   mutualBadge.textContent = `隐藏共担 ${gameMode === "story" ? Math.round(stats.mutual) : describeStat(stats.mutual)}`;
   statWrap.append(mutualBadge);
-  dom.ending.classList.add("is-visible");
+  revealScreen(dom.ending, "#ending-title");
   autoSave();
   tone(760, .45, .035);
 }
 
+function chapterLocationForState(state: ChapterOneState): GameLocation {
+  if (state.phase === "planning") return { kind: "chapter-one-planner", week: state.currentWeek };
+  if (state.phase === "seat-game") return { kind: "chapter-one-seat" };
+  if (state.phase === "sentence-game") return { kind: "chapter-one-sentence" };
+  if (state.phase === "review") return { kind: "chapter-one-review", week: state.currentWeek };
+  if (state.phase === "exam") return { kind: "chapter-one-exam" };
+  return { kind: "chapter-one-complete" };
+}
+
+function showChapterOneState(save = true) {
+  if (!chapterOne || !openingProfile) return;
+  if (typingTimer !== null) clearInterval(typingTimer);
+  hideAllScreens();
+  closeTransientPanels();
+  dom.notebook.classList.remove("is-visible");
+  dom.hud.classList.remove("is-visible");
+  dom.dialogue.classList.remove("is-visible");
+  dom.choices.replaceChildren();
+  dom.portrait.hidden = true;
+  setBackground("classroom", true);
+  gameLocation = chapterLocationForState(chapterOne);
+
+  if (chapterOne.phase === "planning") {
+    chapterOneUI.renderPlanner(chapterOne, openingProfile, gameMode);
+    revealScreen(dom.planner, "#planner-title");
+  } else if (chapterOne.phase === "seat-game") {
+    chapterOneUI.renderSeatGame(chapterOne);
+    revealScreen(dom.seatGame, "#seat-game-title");
+  } else if (chapterOne.phase === "sentence-game") {
+    chapterOneUI.renderSentenceGame(longTermProgress, gameMode);
+    revealScreen(dom.sentenceGame, "#sentence-title");
+  } else if (chapterOne.phase === "review") {
+    chapterOneUI.renderReview(chapterOne, longTermProgress);
+    revealScreen(dom.weekReview, "#review-title");
+  } else if (chapterOne.phase === "exam") {
+    chapterOneUI.renderExam(chapterOne, gameMode);
+    revealScreen(dom.exam, "#exam-title");
+  } else {
+    chapterOneUI.renderComplete(chapterOne, longTermProgress);
+    revealScreen(dom.chapterOneComplete, "#chapter-complete-title");
+  }
+  if (save) autoSave();
+}
+
+function startChapterOne() {
+  if (!openingProfile) return;
+  if (!chapterOne) {
+    const initialized = initializeChapterOne(openingProfile);
+    chapterOne = initialized.chapterOne;
+    longTermProgress = initialized.progress;
+  }
+  tone(620, .12, .025);
+  showChapterOneState();
+}
+
+function handleChapterAssignment(slotId: string, activityId: ChapterOneActivityId) {
+  if (!chapterOne) return;
+  chapterOne = assignChapterOneActivity(chapterOne, slotId, activityId);
+  autoSave();
+  chapterOneUI.renderPlanner(chapterOne, openingProfile!, gameMode);
+  requestAnimationFrame(() =>
+    dom.planner.querySelector<HTMLButtonElement>(`[data-slot-id="${slotId}"]`)?.focus()
+  );
+}
+
+function handleChapterReset() {
+  if (!chapterOne || !openingProfile) return;
+  chapterOne = resetCurrentWeek(chapterOne);
+  autoSave();
+  chapterOneUI.renderPlanner(chapterOne, openingProfile, gameMode);
+  $("#schedule-status").textContent = "已恢复到本周开始时的承诺占用，其余格重新留白。";
+}
+
+function handleChapterCommit() {
+  if (!chapterOne) return;
+  try {
+    const resolved = resolveCurrentWeek(chapterOne, longTermProgress, stats);
+    chapterOne = resolved.chapterOne;
+    longTermProgress = resolved.progress;
+    stats = resolved.stats;
+    updateStatsUI();
+    tone(690, .15, .025);
+    showChapterOneState();
+  } catch (error) {
+    $("#schedule-status").textContent = error instanceof Error ? error.message : "无法开始这一周。";
+  }
+}
+
+function handleSeatAction(actionId: SeatActionId) {
+  if (!chapterOne) return;
+  chapterOne = playSeatAction(chapterOne, actionId);
+  autoSave();
+  chapterOneUI.renderSeatGame(chapterOne);
+  requestAnimationFrame(() => {
+    const target = chapterOne?.seatGame.resolved ? $("#seat-finish-btn") : find("#seat-action-list button");
+    (target as HTMLElement | null)?.focus();
+  });
+}
+
+function handleSeatFinish() {
+  if (!chapterOne) return;
+  const archived = archiveSeatGame(chapterOne, longTermProgress);
+  chapterOne = archived.chapterOne;
+  longTermProgress = archived.progress;
+  showChapterOneState();
+}
+
+function handleSentenceSubmit(
+  fragmentIds: string[],
+  pageAction: SentenceAssemblyRecord["pageAction"]
+) {
+  if (!chapterOne) return;
+  try {
+    const submitted = submitSentenceAssembly(
+      chapterOne,
+      longTermProgress,
+      fragmentIds,
+      pageAction
+    );
+    chapterOne = submitted.chapterOne;
+    longTermProgress = submitted.progress;
+    tone(580, .12, .02);
+    showChapterOneState();
+  } catch (error) {
+    $("#sentence-status").textContent = error instanceof Error ? error.message : "这句话还不能写下。";
+  }
+}
+
+function handleReviewContinue() {
+  if (!chapterOne) return;
+  try {
+    const advanced = advanceAfterReview(chapterOne, longTermProgress);
+    chapterOne = advanced.chapterOne;
+    longTermProgress = advanced.progress;
+    tone(640, .13, .02);
+    showChapterOneState();
+  } catch (error) {
+    console.warn("Cannot advance chapter-one review", error);
+  }
+}
+
+function handleExamAction(actionId: string) {
+  if (!chapterOne) return;
+  try {
+    const resolved = playExamAction(chapterOne, longTermProgress, stats, actionId);
+    chapterOne = resolved.chapterOne;
+    longTermProgress = resolved.progress;
+    stats = resolved.stats;
+    updateStatsUI();
+    tone(500, .06, .015);
+    if (chapterOne.phase === "exam") {
+      gameLocation = { kind: "chapter-one-exam" };
+      autoSave();
+      chapterOneUI.renderExam(chapterOne, gameMode);
+      requestAnimationFrame(() => find<HTMLButtonElement>("#exam-actions button")?.focus());
+    } else {
+      showChapterOneState();
+    }
+  } catch (error) {
+    $("#exam-status").textContent = error instanceof Error ? error.message : "这个考场动作现在不可用。";
+  }
+}
+
+function saveChapterOneNow() {
+  autoSave();
+  $("#schedule-status").textContent = "第一章进度已保存。";
+  tone(720, .1, .02);
+}
+
 function savePayload(nextNode: string | null = null) {
-  const nodeId = nextNode ?? currentNodeId;
-  if (!nodeId) throw new Error("Cannot save before a story node is active");
+  const location: GameLocation = nextNode
+    ? { kind: "story", graphId: "prologue", nodeId: nextNode }
+    : gameLocation;
+  const nodeId = location.kind === "story" ? location.nodeId : currentNodeId;
   return createSaveData({
     playerName,
     stats,
@@ -597,12 +827,14 @@ function savePayload(nextNode: string | null = null) {
     notebook,
     promises,
     decisionIds,
-    openingProfile
+    openingProfile,
+    location,
+    chapterOne,
+    progress: longTermProgress
   });
 }
 
 function autoSave(nextNode: string | null = null) {
-  if (!currentNodeId && !nextNode) return;
   try {
     writeStoredSave(localStorage, savePayload(nextNode));
     refreshContinueButton();
@@ -630,21 +862,36 @@ function loadGame() {
     promises = save.promises;
     decisionIds = save.decisionIds;
     openingProfile = save.openingProfile;
+    chapterOne = save.chapterOne;
+    longTermProgress = save.progress;
+    gameLocation = save.location;
+    currentNodeId = save.currentNodeId;
     applySettings();
     applyGameMode();
     hideAllScreens();
     closeTransientPanels();
-    dom.hud.classList.add("is-visible");
-    dom.dialogue.classList.add("is-visible");
     currentBackground = null;
     setBackground(save.currentBackground || "classroom", true);
     setPortrait(Boolean(save.portraitVisible));
-    const loadedStep = Number(story[save.currentNodeId]?.step || 0);
-    dom.scene.textContent = save.sceneLabel || (loadedStep >= 21 ? "学校东门外" : loadedStep >= 11 ? "三楼东走廊" : "高三（7）班");
-    dom.time.textContent = save.timeLabel || (loadedStep >= 21 ? "周四 · 21:58" : loadedStep >= 11 ? "周四 · 21:48" : "周四 · 21:37");
     updateStatsUI();
     renderLedger();
-    goTo(save.currentNodeId, true);
+
+    if (save.location.kind === "story") {
+      dom.hud.classList.add("is-visible");
+      dom.dialogue.classList.add("is-visible");
+      const loadedStep = Number(story[save.location.nodeId]?.step || 0);
+      dom.scene.textContent = save.sceneLabel || (loadedStep >= 21 ? "学校东门外" : loadedStep >= 11 ? "三楼东走廊" : "高三（7）班");
+      dom.time.textContent = save.timeLabel || (loadedStep >= 21 ? "周四 · 21:58" : loadedStep >= 11 ? "周四 · 21:48" : "周四 · 21:37");
+      goTo(save.location.nodeId, true);
+    } else if (save.location.kind === "opening-profile") {
+      showOpeningProfile();
+    } else if (chapterOne && openingProfile) {
+      showChapterOneState(false);
+    } else if (openingProfile) {
+      showOpeningProfile();
+    } else {
+      showTitle();
+    }
     tone(560, .09, .02);
   } catch (error) {
     console.warn("Load failed", error);
@@ -668,6 +915,20 @@ function resetAndReplay() {
   showModeSelection();
   $<HTMLInputElement>("#player-name").value = playerName;
 }
+
+chapterOneUI = createChapterOneUI({
+  onAssign: handleChapterAssignment,
+  onResetWeek: handleChapterReset,
+  onCommitWeek: handleChapterCommit,
+  onSave: saveChapterOneNow,
+  onReturnTitle: showTitle,
+  onSeatAction: handleSeatAction,
+  onSeatFinish: handleSeatFinish,
+  onSentenceSubmit: handleSentenceSubmit,
+  onReviewContinue: handleReviewContinue,
+  onExamAction: handleExamAction,
+  onReplay: resetAndReplay
+});
 
 dom.dialogue.addEventListener("click", advance);
 dom.dialogue.addEventListener("keydown", (event) => {
@@ -702,6 +963,7 @@ $("#restart-btn").addEventListener("click", showTitle);
 $("#replay-btn").addEventListener("click", resetAndReplay);
 $("#title-btn").addEventListener("click", showTitle);
 $("#carry-forward-btn").addEventListener("click", showOpeningProfile);
+$("#profile-start-btn").addEventListener("click", startChapterOne);
 $("#profile-replay-btn").addEventListener("click", resetAndReplay);
 $("#profile-title-btn").addEventListener("click", showTitle);
 
@@ -721,19 +983,22 @@ $<HTMLInputElement>("#motion-toggle").addEventListener("change", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
-  if (
+  const target = event.target as Element | null;
+  const standaloneScreenVisible =
     dom.title.classList.contains("is-visible") ||
     dom.mode.classList.contains("is-visible") ||
     dom.name.classList.contains("is-visible") ||
     dom.ending.classList.contains("is-visible") ||
-    dom.profile.classList.contains("is-visible")
-  ) return;
+    dom.profile.classList.contains("is-visible") ||
+    Boolean(find(".chapter-screen.is-visible"));
   if (event.key === "Escape") {
+    if (find("dialog[open]")) return;
     const open = find(".side-panel.is-visible, .modal-panel.is-visible");
-    if (open) open.classList.remove("is-visible");
-    else openPanel("menu-panel");
+    if (open?.id) closePanel(open.id);
+    else if (!standaloneScreenVisible) openPanel("menu-panel");
     return;
   }
+  if (target?.closest("input, button, select, textarea, dialog") || standaloneScreenVisible) return;
   if (event.key.toLowerCase() === "s") { manualSave(); return; }
   if (event.key.toLowerCase() === "l") { loadGame(); return; }
   const number = Number(event.key);

@@ -8,10 +8,11 @@ import type {
   VisibleStatKey
 } from "./types";
 
-export const GAME_VERSION = "0.3.0";
-export const SAVE_VERSION = 3 as const;
-export const SAVE_KEY = "after-evening-study-save-v3";
-export const PREVIOUS_SAVE_KEY = "after-evening-study-save-v2";
+export const GAME_VERSION = "0.4.0";
+export const SAVE_VERSION = 4 as const;
+export const SAVE_KEY = "after-evening-study-save-v4";
+export const PREVIOUS_SAVE_KEY = "after-evening-study-save-v3";
+export const FOUNDATION_SAVE_KEY = "after-evening-study-save-v2";
 export const LEGACY_SAVE_KEY = "after-evening-study-demo-save-v1";
 
 export const backgrounds: Record<BackgroundKey, string> = {

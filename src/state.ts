@@ -10,7 +10,8 @@ export function clampStat(key: StatKey, value: number): number {
 
 export function applyStatEffects(
   current: GameStats,
-  effects: StatEffects
+  effects: StatEffects,
+  options: { deriveRebellion?: boolean } = {}
 ): { stats: GameStats; changes: StatChange[] } {
   const stats = { ...current };
   const changes: StatChange[] = [];
@@ -24,16 +25,18 @@ export function applyStatEffects(
     if (actual && key !== "mutual") changes.push({ key, delta: actual });
   }
 
-  let derivedRebellion = 0;
-  if (stats.stress >= 72 && stats.agency < 45) derivedRebellion += 3;
-  if (stats.energy <= 30) derivedRebellion += 2;
-  if (stats.stress < 55 && stats.agency >= 60) derivedRebellion -= 1;
+  if (options.deriveRebellion !== false) {
+    let derivedRebellion = 0;
+    if (stats.stress >= 72 && stats.agency < 45) derivedRebellion += 3;
+    if (stats.energy <= 30) derivedRebellion += 2;
+    if (stats.stress < 55 && stats.agency >= 60) derivedRebellion -= 1;
 
-  if (derivedRebellion) {
-    const before = stats.rebellion;
-    stats.rebellion = clampStat("rebellion", before + derivedRebellion);
-    const actual = stats.rebellion - before;
-    if (actual && !effects.rebellion) changes.push({ key: "rebellion", delta: actual });
+    if (derivedRebellion) {
+      const before = stats.rebellion;
+      stats.rebellion = clampStat("rebellion", before + derivedRebellion);
+      const actual = stats.rebellion - before;
+      if (actual && !effects.rebellion) changes.push({ key: "rebellion", delta: actual });
+    }
   }
 
   return { stats, changes };

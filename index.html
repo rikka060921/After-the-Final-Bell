@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08111e">
   <meta name="description" content="《晚自习之后》——河南县中生活、学业压力与关系成长的浏览器 Galgame">
-  <title>晚自习之后 · 正式序章</title>
+  <title>晚自习之后 · 第一章纵向切片</title>
 </head>
 <body>
-  <main id="game" aria-live="polite">
+  <main id="game" aria-label="《晚自习之后》游戏区域">
     <div id="background" class="background" aria-hidden="true"></div>
     <div class="vignette" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
 
     <section id="title-screen" class="screen title-screen is-visible">
       <div class="title-kicker">A HENAN HIGH SCHOOL STORY</div>
-      <h1>晚自习之后</h1>
+      <h1 id="title-heading" tabindex="-1">晚自习之后</h1>
       <p class="title-subtitle">白天，我们替未来答题。<br>晚自习之后，才轮到我们喜欢彼此。</p>
       <div class="title-meta">
         <span>序章 · 错题本里的十分钟</span>
@@ -28,10 +28,10 @@
       <p class="title-note">本故事发生在虚构城市与学校。人物、校名及事件均为虚构。</p>
     </section>
 
-    <section id="mode-screen" class="screen mode-screen" aria-labelledby="mode-title">
+    <section id="mode-screen" class="screen mode-screen" hidden inert aria-labelledby="mode-title">
       <div class="mode-card">
         <span class="paper-label">答题说明 · 阅读方式</span>
-        <h2 id="mode-title">选择这一次如何读故事</h2>
+        <h2 id="mode-title" tabindex="-1">选择这一次如何读故事</h2>
         <p class="mode-intro">模式只改变信息透明度，不改变剧情内容，也不会禁止存读档。</p>
         <div class="mode-options">
           <button class="mode-option is-recommended" data-mode="story">
@@ -48,7 +48,7 @@
       </div>
     </section>
 
-    <section id="name-screen" class="screen name-screen" aria-labelledby="name-title">
+    <section id="name-screen" class="screen name-screen" hidden inert aria-labelledby="name-title">
       <div class="paper-card name-card">
         <span class="paper-label">答题卡 · 姓名栏</span>
         <h2 id="name-title">在错题本上写下你的名字</h2>
@@ -193,10 +193,10 @@
       </div>
     </section>
 
-    <section id="ending-screen" class="screen ending-screen" aria-labelledby="ending-title">
+    <section id="ending-screen" class="screen ending-screen" hidden inert aria-labelledby="ending-title">
       <div class="ending-card">
         <span class="ending-kicker">PROLOGUE ENDING</span>
-        <h2 id="ending-title">十分钟同盟</h2>
+        <h2 id="ending-title" tabindex="-1">十分钟同盟</h2>
         <p id="ending-quote" class="ending-quote"></p>
         <p id="ending-body" class="ending-body"></p>
         <div id="ending-stats" class="ending-stats"></div>
@@ -209,17 +209,179 @@
       </div>
     </section>
 
-    <section id="opening-profile-screen" class="screen profile-screen" aria-labelledby="profile-title">
+    <section id="opening-profile-screen" class="screen profile-screen" hidden inert aria-labelledby="profile-title">
       <div class="profile-card">
         <span class="ending-kicker">CHAPTER 01 · OPENING PROFILE</span>
-        <h2 id="profile-title">第一章 · 座位表</h2>
+        <h2 id="profile-title" tabindex="-1">第一章 · 座位表</h2>
         <p class="profile-hook">第二天 07:10，班主任拿着新座位表走进教室。你昨晚留下的字，已经开始占用今天。</p>
         <div id="opening-summary" class="opening-summary"></div>
         <div id="opening-promise" class="opening-promise"></div>
-        <p class="profile-status">开局档案已经写入存档。第一章纵向切片将在下一里程碑从这里继续。</p>
+        <p class="profile-status">开局档案已经写入存档。进入第一章后，昨晚的承诺会真实占用四周日历。</p>
         <div class="ending-actions">
+          <button id="profile-start-btn" class="primary-btn">进入第一周</button>
           <button id="profile-replay-btn" class="ghost-btn">重新生成序章开局</button>
           <button id="profile-title-btn" class="ghost-btn">返回标题</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="chapter-one-planner-screen" class="screen chapter-screen" hidden inert aria-labelledby="planner-title">
+      <div class="chapter-shell">
+        <header class="chapter-header">
+          <div>
+            <span class="paper-label">CHAPTER 01 · 座位表</span>
+            <h2 id="planner-title" tabindex="-1">第一周 · 新座位</h2>
+            <p id="planner-date" class="chapter-date"></p>
+          </div>
+          <div class="chapter-header-actions">
+            <button id="planner-save-btn" class="ghost-btn compact-btn">保存</button>
+            <button id="planner-title-btn" class="ghost-btn compact-btn">返回标题</button>
+          </div>
+        </header>
+        <nav class="week-progress" aria-label="第一章四周进度">
+          <ol id="week-progress-list"></ol>
+        </nav>
+        <p id="planner-prompt" class="planner-prompt"></p>
+        <div class="schedule-layout">
+          <aside class="week-pressure" aria-labelledby="pressure-title">
+            <span class="paper-label">THIS WEEK</span>
+            <h3 id="pressure-title">本周压力</h3>
+            <ul id="pressure-list"></ul>
+            <div id="planner-promise" class="planner-promise"></div>
+          </aside>
+          <section class="schedule-board" aria-labelledby="slots-title">
+            <header class="schedule-board-header">
+              <div>
+                <span class="paper-label">14 FREE SLOTS</span>
+                <h3 id="slots-title">十四格自由时间</h3>
+              </div>
+              <output id="allocation-summary"></output>
+            </header>
+            <ol id="schedule-days" class="schedule-days"></ol>
+          </section>
+        </div>
+        <footer class="interaction-actions planner-actions">
+          <button id="schedule-reset-btn" class="ghost-btn">恢复周初</button>
+          <p id="schedule-guidance">至少主动安排 3 格，其余可以留白。</p>
+          <button id="schedule-commit-btn" class="primary-btn">开始这一周</button>
+        </footer>
+        <p id="schedule-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </section>
+
+    <dialog id="slot-editor" class="slot-editor" aria-labelledby="slot-editor-title">
+      <form id="slot-editor-form" method="dialog">
+        <header>
+          <span class="paper-label">本周计划 · 单格安排</span>
+          <h2 id="slot-editor-title">安排时间</h2>
+          <p id="slot-editor-context"></p>
+        </header>
+        <fieldset>
+          <legend>这段时间怎么用</legend>
+          <div id="slot-activity-options" class="activity-options"></div>
+        </fieldset>
+        <div class="dialog-actions">
+          <button value="cancel" class="ghost-btn">取消</button>
+          <button id="slot-confirm-btn" value="confirm" class="primary-btn">写进时间表</button>
+        </div>
+      </form>
+    </dialog>
+
+    <section id="seat-game-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="seat-game-title">
+      <div class="interaction-shell">
+        <header class="interaction-header">
+          <span class="paper-label">第一周 · 座位视线</span>
+          <h2 id="seat-game-title" tabindex="-1">把第17题递到教室另一端</h2>
+          <p>没有倒计时，也没有随机检定。你看得到的是当下视线，结果取决于路线与耐心。</p>
+        </header>
+        <div class="seat-layout">
+          <section aria-labelledby="seat-map-title">
+            <h3 id="seat-map-title">高三（7）班座位图</h3>
+            <div id="seat-map" class="seat-map-wrap"></div>
+            <p class="legend-text">文字标记分别说明“纸页所在”“当前视线”“无法判断”，颜色只作辅助。</p>
+          </section>
+          <aside class="seat-controls" aria-labelledby="seat-actions-title">
+            <h3 id="seat-actions-title">这一轮怎么做</h3>
+            <p id="seat-turn-state"></p>
+            <div id="seat-action-list" class="seat-action-list" role="group" aria-label="座位玩法可执行动作"></div>
+            <ol id="seat-log" class="interaction-log"></ol>
+            <button id="seat-finish-btn" class="primary-btn" hidden>写入本周结果</button>
+          </aside>
+        </div>
+        <p id="seat-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </section>
+
+    <section id="sentence-game-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="sentence-title">
+      <form id="sentence-form" class="interaction-shell sentence-shell">
+        <header class="interaction-header">
+          <span class="paper-label">第三周 · 句子拼装</span>
+          <h2 id="sentence-title" tabindex="-1">问你有权知道的部分</h2>
+          <p>她承认事情涉及替别人保密。高亲密不会让另一个人的隐私自动变成你的答案。</p>
+        </header>
+        <div id="sentence-fields" class="sentence-fields"></div>
+        <section class="page-action-card" aria-labelledby="page-action-title">
+          <h3 id="page-action-title">这页错题怎么办</h3>
+          <div class="page-action-options">
+            <label><input type="radio" name="page-action" value="intact" checked><span><strong>完整留在本里</strong><small>让内容与装订痕迹都保留下来。</small></span></label>
+            <label><input type="radio" name="page-action" value="torn"><span><strong>沿松线撕下</strong><small>只保留残片，减少整页被看见的风险。</small></span></label>
+            <label><input type="radio" name="page-action" value="returned"><span><strong>把本子交还她</strong><small>放弃持有，但无法抹掉已经留下的压痕。</small></span></label>
+          </div>
+        </section>
+        <footer class="sentence-submit-bar">
+          <div>
+            <span class="paper-label">你最终写下</span>
+            <output id="assembled-sentence">请选择开口与落句。</output>
+            <p id="sentence-validation" role="status" aria-live="polite" aria-atomic="true"></p>
+          </div>
+          <button id="sentence-submit-btn" type="submit" class="primary-btn" disabled>把回应写进错题本</button>
+        </footer>
+        <p id="sentence-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </form>
+    </section>
+
+    <section id="week-review-screen" class="screen chapter-screen review-screen" hidden inert aria-labelledby="review-title">
+      <div class="interaction-shell">
+        <header class="interaction-header">
+          <span class="paper-label">WEEKLY REVIEW</span>
+          <h2 id="review-title" tabindex="-1">这一周写进了什么</h2>
+          <p id="review-zhou-action" class="zhou-action-note"></p>
+        </header>
+        <div id="week-review-grid" class="review-grid"></div>
+        <aside id="review-pattern" class="review-pattern"></aside>
+        <footer class="interaction-actions">
+          <button id="review-title-btn" class="ghost-btn">返回标题</button>
+          <button id="review-continue-btn" class="primary-btn">把这一周写进错题本</button>
+        </footer>
+      </div>
+    </section>
+
+    <section id="exam-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="exam-title">
+      <div class="interaction-shell exam-shell">
+        <header class="interaction-header">
+          <span id="exam-paper-label" class="paper-label">一模</span>
+          <h2 id="exam-title" tabindex="-1">先看整张卷</h2>
+          <p id="exam-scene"></p>
+        </header>
+        <div id="exam-progress" class="exam-progress" role="progressbar" aria-label="一模四个局面" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" aria-valuetext="第 1 个局面，共四个"><span id="exam-progress-fill"></span></div>
+        <div id="exam-actions" class="exam-actions" role="group" aria-label="当前可用方法"></div>
+        <p class="exam-note">你选择的是当下方法，不是分数。成绩会由此前的掌握、速度、稳定、睡眠与这四次处理共同生成。</p>
+        <p id="exam-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </section>
+
+    <section id="chapter-one-complete-screen" class="screen chapter-screen chapter-complete-screen" hidden inert aria-labelledby="chapter-complete-title">
+      <div class="chapter-complete-card">
+        <span class="ending-kicker">CHAPTER 01 · END</span>
+        <h2 id="chapter-complete-title" tabindex="-1">第17题，还有第三个人</h2>
+        <p id="third-hand-route" class="third-hand-route"></p>
+        <blockquote id="third-hand-description"></blockquote>
+        <p id="third-hand-writing" class="handwriting-reveal"></p>
+        <p id="chapter-one-exam-summary"></p>
+        <p class="chapter-hook">你只能确认第三个人存在，也确认周棠那晚的缺席与她有关。她是谁，仍不属于这一章的答案。</p>
+        <div class="ending-actions">
+          <button id="chapter-complete-title-btn" class="ghost-btn">返回标题</button>
+          <button id="chapter-complete-replay-btn" class="ghost-btn">从序章重新开始</button>
         </div>
       </div>
     </section>

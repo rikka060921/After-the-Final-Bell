@@ -1,4 +1,5 @@
 import {
+  FOUNDATION_SAVE_KEY,
   GAME_VERSION,
   LEGACY_SAVE_KEY,
   PREVIOUS_SAVE_KEY,
@@ -9,18 +10,27 @@ import {
   defaultSettings,
   initialStats
 } from "./config";
+import {
+  defaultLongTermProgress,
+  sanitizeChapterOneState,
+  sanitizeLongTermProgress
+} from "./chapter-one/persistence";
+import { cloneChapterOneState } from "./chapter-one/schedule";
 import type {
   BackgroundKey,
+  ChapterOneState,
   EndingId,
+  GameLocation,
   GameMode,
   GameSettings,
   GameStats,
   HistoryEntry,
+  LongTermProgress,
   NotebookSlot,
   NotebookState,
   OpeningProfile,
   PromiseEntry,
-  SaveDataV3,
+  SaveDataV4,
   StoryGraph
 } from "./types";
 
@@ -33,7 +43,7 @@ export interface StorageLike {
 export interface SaveSnapshot {
   playerName: string;
   stats: GameStats;
-  currentNodeId: string;
+  currentNodeId: string | null;
   currentBackground: BackgroundKey;
   portraitVisible: boolean;
   sceneLabel: string;
@@ -45,6 +55,9 @@ export interface SaveSnapshot {
   promises: PromiseEntry[];
   decisionIds: string[];
   openingProfile: OpeningProfile | null;
+  location: GameLocation;
+  chapterOne: ChapterOneState | null;
+  progress: LongTermProgress;
 }
 
 const backgrounds = new Set<BackgroundKey>(["classroom", "corridor", "gate"]);
@@ -165,7 +178,59 @@ function sanitizeOpeningProfile(value: unknown): OpeningProfile | null {
   };
 }
 
-export function createSaveData(snapshot: SaveSnapshot): SaveDataV3 {
+function cloneOpeningProfile(profile: OpeningProfile | null): OpeningProfile | null {
+  if (!profile) return null;
+  return {
+    ...profile,
+    stats: { ...profile.stats },
+    notebook: { slots: [...profile.notebook.slots], committed: profile.notebook.committed },
+    promises: profile.promises.map((promise) => ({ ...promise })),
+    decisionIds: [...profile.decisionIds],
+    summary: [...profile.summary]
+  };
+}
+
+function sanitizeLocation(
+  value: unknown,
+  graph: StoryGraph,
+  currentNodeId: string | null,
+  openingProfile: OpeningProfile | null,
+  chapterOne: ChapterOneState | null
+): GameLocation | null {
+  const chapterLocation = (): GameLocation => {
+    if (!chapterOne) throw new Error("Chapter-one state is required");
+    if (chapterOne.phase === "planning") {
+      return { kind: "chapter-one-planner", week: chapterOne.currentWeek };
+    }
+    if (chapterOne.phase === "seat-game") return { kind: "chapter-one-seat" };
+    if (chapterOne.phase === "sentence-game") return { kind: "chapter-one-sentence" };
+    if (chapterOne.phase === "review") {
+      return { kind: "chapter-one-review", week: chapterOne.currentWeek };
+    }
+    if (chapterOne.phase === "exam") return { kind: "chapter-one-exam" };
+    return { kind: "chapter-one-complete" };
+  };
+  if (isRecord(value)) {
+    const kind = asString(value.kind);
+    if (kind === "story") {
+      const nodeId = asString(value.nodeId);
+      if (asString(value.graphId) === "prologue" && graph[nodeId]) {
+        return { kind: "story", graphId: "prologue", nodeId };
+      }
+    }
+    if (kind === "opening-profile" && openingProfile) return { kind: "opening-profile" };
+    if (chapterOne && openingProfile && kind.startsWith("chapter-one-")) {
+      return chapterLocation();
+    }
+  }
+  if (currentNodeId && graph[currentNodeId]) {
+    return { kind: "story", graphId: "prologue", nodeId: currentNodeId };
+  }
+  if (openingProfile) return { kind: "opening-profile" };
+  return null;
+}
+
+export function createSaveData(snapshot: SaveSnapshot): SaveDataV4 {
   return {
     version: SAVE_VERSION,
     gameVersion: GAME_VERSION,
@@ -176,24 +241,19 @@ export function createSaveData(snapshot: SaveSnapshot): SaveDataV3 {
     notebook: { slots: [...snapshot.notebook.slots], committed: snapshot.notebook.committed },
     promises: snapshot.promises.map((promise) => ({ ...promise })),
     decisionIds: [...snapshot.decisionIds],
-    openingProfile: snapshot.openingProfile
-      ? {
-          ...snapshot.openingProfile,
-          stats: { ...snapshot.openingProfile.stats },
-          notebook: {
-            slots: [...snapshot.openingProfile.notebook.slots],
-            committed: snapshot.openingProfile.notebook.committed
-          },
-          promises: snapshot.openingProfile.promises.map((promise) => ({ ...promise })),
-          decisionIds: [...snapshot.openingProfile.decisionIds],
-          summary: [...snapshot.openingProfile.summary]
-        }
-      : null,
+    openingProfile: cloneOpeningProfile(snapshot.openingProfile),
+    location: { ...snapshot.location },
+    chapterOne: snapshot.chapterOne ? cloneChapterOneState(snapshot.chapterOne) : null,
+    progress: {
+      facts: [...snapshot.progress.facts],
+      tendencies: { ...snapshot.progress.tendencies },
+      academic: { ...snapshot.progress.academic }
+    },
     savedAt: new Date().toISOString()
   };
 }
 
-export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV3 | null {
+export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV4 | null {
   let value: unknown;
   try {
     value = JSON.parse(raw);
@@ -202,8 +262,12 @@ export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV3 | null
   }
   if (!isRecord(value)) return null;
 
-  const currentNodeId = asString(value.currentNodeId);
-  if (!currentNodeId || !graph[currentNodeId]) return null;
+  const rawNodeId = asString(value.currentNodeId);
+  const currentNodeId = rawNodeId && graph[rawNodeId] ? rawNodeId : null;
+  const openingProfile = sanitizeOpeningProfile(value.openingProfile);
+  const chapterOne = sanitizeChapterOneState(value.chapterOne);
+  const location = sanitizeLocation(value.location, graph, currentNodeId, openingProfile, chapterOne);
+  if (!location) return null;
 
   const background = asString(value.currentBackground, "classroom") as BackgroundKey;
   return {
@@ -211,7 +275,7 @@ export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV3 | null
     gameVersion: GAME_VERSION,
     playerName: asString(value.playerName, "陈舟").trim().slice(0, 6) || "陈舟",
     stats: sanitizeStats(value.stats),
-    currentNodeId,
+    currentNodeId: location.kind === "story" ? location.nodeId : currentNodeId,
     currentBackground: backgrounds.has(background) ? background : "classroom",
     portraitVisible: Boolean(value.portraitVisible),
     sceneLabel: asString(value.sceneLabel),
@@ -222,13 +286,16 @@ export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV3 | null
     notebook: sanitizeNotebook(value.notebook),
     promises: sanitizePromises(value.promises),
     decisionIds: sanitizeDecisionIds(value.decisionIds),
-    openingProfile: sanitizeOpeningProfile(value.openingProfile),
+    openingProfile,
+    location,
+    chapterOne,
+    progress: sanitizeLongTermProgress(value.progress ?? defaultLongTermProgress()),
     savedAt: asString(value.savedAt, new Date(0).toISOString())
   };
 }
 
-export function readStoredSave(storage: StorageLike, graph: StoryGraph): SaveDataV3 | null {
-  for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) {
+export function readStoredSave(storage: StorageLike, graph: StoryGraph): SaveDataV4 | null {
+  for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, FOUNDATION_SAVE_KEY, LEGACY_SAVE_KEY]) {
     const raw = storage.getItem(key);
     if (!raw) continue;
     const save = parseSaveData(raw, graph);
@@ -242,7 +309,7 @@ export function readStoredSave(storage: StorageLike, graph: StoryGraph): SaveDat
   return null;
 }
 
-export function writeStoredSave(storage: StorageLike, save: SaveDataV3): void {
+export function writeStoredSave(storage: StorageLike, save: SaveDataV4): void {
   storage.setItem(SAVE_KEY, JSON.stringify(save));
 }
 

@@ -24,6 +24,33 @@ export type VisibleStatKey = (typeof VISIBLE_STAT_KEYS)[number];
 export type BackgroundKey = "classroom" | "corridor" | "gate";
 export type GameMode = "story" | "county";
 export type NotebookSlot = "solution" | "message" | "blank";
+export type ChapterOneWeek = 1 | 2 | 3 | 4;
+export type ChapterOnePeriod = "break" | "evening";
+export type ChapterOnePhase =
+  | "planning"
+  | "seat-game"
+  | "sentence-game"
+  | "review"
+  | "exam"
+  | "complete";
+export type ChapterOneActivityId =
+  | "open"
+  | "math-mastery"
+  | "math-speed"
+  | "english-review"
+  | "mutual-review"
+  | "rest"
+  | "own-goal"
+  | "help-liang"
+  | "observe-seat"
+  | "investigate-absence"
+  | "notebook-message"
+  | "walk"
+  | "promise-review"
+  | "promise-contact"
+  | "promise-async";
+export type AssignmentSource = "player" | "promise" | "zhou-tang";
+export type AssignmentStatus = "planned" | "done" | "missed" | "rescheduled";
 
 export type GameStats = Record<StatKey, number>;
 export type StatEffects = Partial<Record<StatKey, number>>;
@@ -109,6 +136,132 @@ export interface OpeningProfile {
   summary: string[];
 }
 
+export interface BehaviorTendencies {
+  listening: number;
+  explanation: number;
+  responsibility: number;
+  avoidance: number;
+  control: number;
+  defiance: number;
+}
+
+export interface AcademicState {
+  mastery: number;
+  speed: number;
+  stability: number;
+  falseMastery: number;
+  sleepDebt: number;
+}
+
+export interface LongTermProgress {
+  facts: string[];
+  tendencies: BehaviorTendencies;
+  academic: AcademicState;
+}
+
+export type GameLocation =
+  | { kind: "story"; graphId: "prologue"; nodeId: string }
+  | { kind: "opening-profile" }
+  | { kind: "chapter-one-planner"; week: ChapterOneWeek }
+  | { kind: "chapter-one-seat" }
+  | { kind: "chapter-one-sentence" }
+  | { kind: "chapter-one-review"; week: ChapterOneWeek }
+  | { kind: "chapter-one-exam" }
+  | { kind: "chapter-one-complete" };
+
+export interface ChapterOneSlot {
+  id: string;
+  week: ChapterOneWeek;
+  dayIndex: number;
+  dayLabel: string;
+  period: ChapterOnePeriod;
+  periodLabel: string;
+}
+
+export interface ScheduledAssignment {
+  slotId: string;
+  activityId: ChapterOneActivityId;
+  source: AssignmentSource;
+  locked: boolean;
+  status: AssignmentStatus;
+  obligationId?: string;
+}
+
+export interface ChapterOneWeekPlan {
+  week: ChapterOneWeek;
+  assignments: Record<string, ScheduledAssignment>;
+  committed: boolean;
+  resolved: boolean;
+}
+
+export interface CalendarObligation {
+  id: string;
+  promiseId: string;
+  week: ChapterOneWeek;
+  slotId: string;
+  activityId: ChapterOneActivityId;
+  label: string;
+  status: "due" | "fulfilled" | "missed" | "renegotiated";
+}
+
+export interface ChapterOneRelationships {
+  liangFavor: number;
+  guoSuspicion: number;
+  zhouPressure: number;
+  seatIntel: number;
+}
+
+export interface ChapterOneWeekResult {
+  week: ChapterOneWeek;
+  title: string;
+  completed: string[];
+  changes: string[];
+  echoes: string[];
+  nextWeek: string[];
+  zhouAction: string;
+}
+
+export type SeatActionId = "wait" | "pass-liang" | "pass-zhou" | "hide" | "take-back";
+
+export interface SeatGameState {
+  turn: number;
+  carrierSeatId: string;
+  attention: number;
+  log: string[];
+  resolved: boolean;
+  outcome: "pending" | "delivered" | "noticed" | "returned";
+}
+
+export interface SentenceAssemblyRecord {
+  fragmentIds: string[];
+  text: string;
+  actionTypes: string[];
+  pageAction: "intact" | "torn" | "returned";
+}
+
+export interface MockExamState {
+  step: number;
+  actionIds: string[];
+  resolved: boolean;
+  band: "突破" | "稳定" | "波动" | "失常" | null;
+  effectiveScore: number | null;
+  note: string;
+}
+
+export interface ChapterOneState {
+  schemaVersion: 1;
+  currentWeek: ChapterOneWeek;
+  phase: ChapterOnePhase;
+  plans: ChapterOneWeekPlan[];
+  obligations: CalendarObligation[];
+  results: ChapterOneWeekResult[];
+  relationships: ChapterOneRelationships;
+  resolvedEventIds: string[];
+  seatGame: SeatGameState;
+  sentence: SentenceAssemblyRecord | null;
+  exam: MockExamState;
+}
+
 export interface SaveDataV1 {
   version: 1;
   playerName: string;
@@ -137,7 +290,15 @@ export interface SaveDataV3 extends Omit<SaveDataV2, "version"> {
   openingProfile: OpeningProfile | null;
 }
 
-export type AnySaveData = SaveDataV1 | SaveDataV2 | SaveDataV3;
+export interface SaveDataV4 extends Omit<SaveDataV3, "version" | "currentNodeId"> {
+  version: 4;
+  currentNodeId: string | null;
+  location: GameLocation;
+  chapterOne: ChapterOneState | null;
+  progress: LongTermProgress;
+}
+
+export type AnySaveData = SaveDataV1 | SaveDataV2 | SaveDataV3 | SaveDataV4;
 
 export interface StatChange {
   key: StatKey;
