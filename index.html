@@ -400,7 +400,70 @@
         <p class="chapter-hook">你只能确认第三个人存在，也确认周棠那晚的缺席与她有关。她是谁，仍不属于这一章的答案。</p>
         <div class="ending-actions">
           <button id="chapter-complete-title-btn" class="ghost-btn">返回标题</button>
+          <button id="chapter-two-start-btn" class="primary-btn">进入第二章 · 两份答案</button>
           <button id="chapter-complete-replay-btn" class="ghost-btn">从序章重新开始</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="chapter-two-result-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="chapter-two-result-title">
+      <div class="interaction-shell exam-shell">
+        <header class="interaction-header">
+          <span class="paper-label">CHAPTER 02 · 两份答案</span>
+          <h2 id="chapter-two-result-title" tabindex="-1">先把一模成绩单带回家</h2>
+          <p>同一组结果可以被说成进步、压力，也可以被完整解释。家人听见的重点会改变接下来的空间。</p>
+        </header>
+        <section class="result-letter-card" aria-labelledby="chapter-two-score-title">
+          <span class="paper-label">MOCK RESULT</span>
+          <h3 id="chapter-two-score-title">一模结果</h3>
+          <p id="chapter-two-score-summary"></p>
+          <p id="chapter-two-family-pressure"></p>
+        </section>
+        <div id="chapter-two-result-actions" class="exam-actions" role="group" aria-label="成绩单解释方式"></div>
+        <p id="chapter-two-result-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </section>
+
+    <section id="chapter-two-message-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="chapter-two-message-title">
+      <div class="interaction-shell exam-shell">
+        <header class="interaction-header">
+          <span class="paper-label">CHAPTER 02 · 异步通信</span>
+          <h2 id="chapter-two-message-title" tabindex="-1">她删掉了一行大学计划</h2>
+          <p>寒假没有随时聊天。你只有一条有限字数的留言，不能把等待写成催促。</p>
+        </header>
+        <div class="message-budget" aria-live="polite"><strong id="message-budget-count">0 / 18 字</strong><span>每条留言都不会替你得到答案。</span></div>
+        <div id="chapter-two-message-actions" class="exam-actions" role="group" aria-label="异步留言选项"></div>
+        <p id="chapter-two-message-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </section>
+
+    <section id="chapter-two-bus-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="chapter-two-bus-title">
+      <div class="interaction-shell exam-shell">
+        <header class="interaction-header">
+          <span class="paper-label">CHAPTER 02 · 错峰公交</span>
+          <h2 id="chapter-two-bus-title" tabindex="-1">同一班公交的不同站点</h2>
+          <p>你们不在同一站上车。早餐、等待、步行和快车会共同决定这十分钟是否真的出现。</p>
+        </header>
+        <div class="bus-route-track" aria-label="公交路线"><ol id="bus-stop-list"></ol></div>
+        <div class="bus-status-card">
+          <strong id="bus-time-state"></strong>
+          <span id="bus-distance-state"></span>
+        </div>
+        <div id="chapter-two-bus-actions" class="exam-actions" role="group" aria-label="公交路线动作"></div>
+        <ol id="chapter-two-bus-log" class="interaction-log"></ol>
+        <p id="chapter-two-bus-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </section>
+
+    <section id="chapter-two-complete-screen" class="screen chapter-screen chapter-complete-screen" hidden inert aria-labelledby="chapter-two-complete-title">
+      <div class="chapter-complete-card">
+        <span class="ending-kicker">CHAPTER 02 · END</span>
+        <h2 id="chapter-two-complete-title" tabindex="-1">两份答案，都没有替你决定未来</h2>
+        <p id="chapter-two-complete-summary" class="chapter-hook"></p>
+        <blockquote id="chapter-two-complete-message"></blockquote>
+        <p id="chapter-two-complete-hook" class="handwriting-reveal"></p>
+        <div class="ending-actions">
+          <button id="chapter-two-title-btn" class="ghost-btn">返回标题</button>
         </div>
       </div>
     </section>

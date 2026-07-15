@@ -16,10 +16,12 @@ import {
   sanitizeChapterOneState,
   sanitizeLongTermProgress
 } from "./chapter-one/persistence";
+import { sanitizeChapterTwoState } from "./chapter-two/persistence";
 import { cloneChapterOneState } from "./chapter-one/schedule";
 import type {
   BackgroundKey,
   ChapterOneState,
+  ChapterTwoState,
   EndingId,
   GameLocation,
   GameMode,
@@ -61,6 +63,7 @@ export interface SaveSnapshot {
   openingProfile: OpeningProfile | null;
   location: GameLocation;
   chapterOne: ChapterOneState | null;
+  chapterTwo?: ChapterTwoState | null;
   progress: LongTermProgress;
 }
 
@@ -208,7 +211,8 @@ function sanitizeLocation(
   graph: StoryGraph,
   currentNodeId: string | null,
   openingProfile: OpeningProfile | null,
-  chapterOne: ChapterOneState | null
+  chapterOne: ChapterOneState | null,
+  chapterTwo: ChapterTwoState | null
 ): GameLocation | null {
   const chapterLocation = (): GameLocation => {
     if (!chapterOne) throw new Error("Chapter-one state is required");
@@ -223,6 +227,13 @@ function sanitizeLocation(
     if (chapterOne.phase === "exam") return { kind: "chapter-one-exam" };
     return { kind: "chapter-one-complete" };
   };
+  const chapterTwoLocation = (): GameLocation => {
+    if (!chapterTwo) throw new Error("Chapter-two state is required");
+    if (chapterTwo.phase === "result-letter") return { kind: "chapter-two-result" };
+    if (chapterTwo.phase === "async-message") return { kind: "chapter-two-message" };
+    if (chapterTwo.phase === "bus-route") return { kind: "chapter-two-bus" };
+    return { kind: "chapter-two-complete" };
+  };
   if (isRecord(value)) {
     const kind = asString(value.kind);
     if (kind === "story") {
@@ -234,6 +245,9 @@ function sanitizeLocation(
     if (kind === "opening-profile" && openingProfile) return { kind: "opening-profile" };
     if (chapterOne && openingProfile && kind.startsWith("chapter-one-")) {
       return chapterLocation();
+    }
+    if (chapterTwo && chapterOne?.phase === "complete" && openingProfile && kind.startsWith("chapter-two-")) {
+      return chapterTwoLocation();
     }
   }
   if (currentNodeId && graph[currentNodeId]) {
@@ -258,6 +272,7 @@ export function createSaveData(snapshot: SaveSnapshot): SaveDataV4 {
     openingProfile: cloneOpeningProfile(snapshot.openingProfile),
     location: { ...snapshot.location },
     chapterOne: snapshot.chapterOne ? cloneChapterOneState(snapshot.chapterOne) : null,
+    chapterTwo: snapshot.chapterTwo ? structuredClone(snapshot.chapterTwo) : null,
     progress: {
       facts: [...snapshot.progress.facts],
       tendencies: { ...snapshot.progress.tendencies },
@@ -280,7 +295,15 @@ export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV4 | null
   const currentNodeId = rawNodeId && graph[rawNodeId] ? rawNodeId : null;
   const openingProfile = sanitizeOpeningProfile(value.openingProfile);
   const chapterOne = sanitizeChapterOneState(value.chapterOne);
-  const location = sanitizeLocation(value.location, graph, currentNodeId, openingProfile, chapterOne);
+  const chapterTwo = sanitizeChapterTwoState(value.chapterTwo);
+  const location = sanitizeLocation(
+    value.location,
+    graph,
+    currentNodeId,
+    openingProfile,
+    chapterOne,
+    chapterTwo
+  );
   if (!location) return null;
 
   const background = asString(value.currentBackground, "classroom") as BackgroundKey;
@@ -304,6 +327,7 @@ export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV4 | null
     openingProfile,
     location,
     chapterOne,
+    chapterTwo,
     progress: sanitizeLongTermProgress(value.progress ?? defaultLongTermProgress()),
     savedAt: asString(value.savedAt, new Date(0).toISOString())
   };

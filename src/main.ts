@@ -29,6 +29,11 @@ import {
 import { archiveSeatGame, playSeatAction } from "./chapter-one/seat-game";
 import { submitSentenceAssembly } from "./chapter-one/sentence";
 import { createChapterOneUI, type ChapterOneUI } from "./chapter-one/ui";
+import { initializeChapterTwo } from "./chapter-two/opening";
+import { playBusAction } from "./chapter-two/bus";
+import { sendAsyncMessage } from "./chapter-two/message";
+import { chooseResultFraming } from "./chapter-two/result";
+import { createChapterTwoUI, type ChapterTwoUI } from "./chapter-two/ui";
 import {
   createSaveData,
   hasStoredSave,
@@ -45,6 +50,7 @@ import {
   type BackgroundKey,
   type ChapterOneActivityId,
   type ChapterOneState,
+  type ChapterTwoState,
   type EndingId,
   type GameLocation,
   type GameMode,
@@ -57,6 +63,9 @@ import {
   type PromiseEntry,
   type SeatActionId,
   type SentenceAssemblyRecord,
+  type AsyncMessageId,
+  type BusActionId,
+  type ResultFramingId,
   type SaveDataV4,
   type StatChange,
   type StatEffects,
@@ -98,6 +107,10 @@ const dom = {
   weekReview: $("#week-review-screen"),
   exam: $("#exam-screen"),
   chapterOneComplete: $("#chapter-one-complete-screen"),
+  chapterTwoResult: $("#chapter-two-result-screen"),
+  chapterTwoMessage: $("#chapter-two-message-screen"),
+  chapterTwoBus: $("#chapter-two-bus-screen"),
+  chapterTwoComplete: $("#chapter-two-complete-screen"),
   toast: $("#toast-stack")
 };
 
@@ -120,8 +133,10 @@ let decisionIds: string[] = [];
 let openingProfile: OpeningProfile | null = null;
 let gameLocation: GameLocation = { kind: "story", graphId: "prologue", nodeId: "intro_01" };
 let chapterOne: ChapterOneState | null = null;
+let chapterTwo: ChapterTwoState | null = null;
 let longTermProgress: LongTermProgress = defaultLongTermProgress();
 let chapterOneUI: ChapterOneUI;
+let chapterTwoUI: ChapterTwoUI;
 let audioContext: AudioContext | null = null;
 
 function interpolate(text = ""): string {
@@ -254,6 +269,7 @@ function newGame() {
   decisionIds = [];
   openingProfile = null;
   chapterOne = null;
+  chapterTwo = null;
   longTermProgress = defaultLongTermProgress();
   gameLocation = { kind: "story", graphId: "prologue", nodeId: "intro_01" };
   hideAllScreens();
@@ -664,6 +680,13 @@ function chapterLocationForState(state: ChapterOneState): GameLocation {
   return { kind: "chapter-one-complete" };
 }
 
+function chapterTwoLocationForState(state: ChapterTwoState): GameLocation {
+  if (state.phase === "result-letter") return { kind: "chapter-two-result" };
+  if (state.phase === "async-message") return { kind: "chapter-two-message" };
+  if (state.phase === "bus-route") return { kind: "chapter-two-bus" };
+  return { kind: "chapter-two-complete" };
+}
+
 function showChapterOneState(save = true) {
   if (!chapterOne || !openingProfile) return;
   if (typingTimer !== null) clearInterval(typingTimer);
@@ -699,6 +722,34 @@ function showChapterOneState(save = true) {
   if (save) autoSave();
 }
 
+function showChapterTwoState(save = true) {
+  if (!chapterTwo || !openingProfile) return;
+  if (typingTimer !== null) clearInterval(typingTimer);
+  hideAllScreens();
+  closeTransientPanels();
+  dom.notebook.classList.remove("is-visible");
+  dom.hud.classList.remove("is-visible");
+  dom.dialogue.classList.remove("is-visible");
+  dom.choices.replaceChildren();
+  dom.portrait.hidden = true;
+  setBackground("gate", true);
+  gameLocation = chapterTwoLocationForState(chapterTwo);
+  if (chapterTwo.phase === "result-letter") {
+    chapterTwoUI.renderResult(chapterTwo, gameMode);
+    revealScreen(dom.chapterTwoResult, "#chapter-two-result-title");
+  } else if (chapterTwo.phase === "async-message") {
+    chapterTwoUI.renderMessage(chapterTwo);
+    revealScreen(dom.chapterTwoMessage, "#chapter-two-message-title");
+  } else if (chapterTwo.phase === "bus-route") {
+    chapterTwoUI.renderBus(chapterTwo);
+    revealScreen(dom.chapterTwoBus, "#chapter-two-bus-title");
+  } else {
+    chapterTwoUI.renderComplete(chapterTwo);
+    revealScreen(dom.chapterTwoComplete, "#chapter-two-complete-title");
+  }
+  if (save) autoSave();
+}
+
 function startChapterOne() {
   if (!openingProfile) return;
   if (!chapterOne) {
@@ -708,6 +759,20 @@ function startChapterOne() {
   }
   tone(620, .12, .025);
   showChapterOneState();
+}
+
+function startChapterTwo() {
+  if (!openingProfile || !chapterOne) return;
+  if (!chapterTwo) {
+    try {
+      chapterTwo = initializeChapterTwo(chapterOne, longTermProgress, stats);
+    } catch (error) {
+      $("#chapter-two-complete-summary").textContent = error instanceof Error ? error.message : "第二章暂时无法开始。";
+      return;
+    }
+  }
+  tone(620, .12, .025);
+  showChapterTwoState();
 }
 
 function handleChapterAssignment(slotId: string, activityId: ChapterOneActivityId) {
@@ -818,6 +883,48 @@ function handleExamAction(actionId: string) {
   }
 }
 
+function handleChapterTwoFraming(framingId: ResultFramingId) {
+  if (!chapterTwo) return;
+  try {
+    const result = chooseResultFraming(chapterTwo, longTermProgress, stats, framingId);
+    chapterTwo = result.chapterTwo;
+    longTermProgress = result.progress;
+    stats = result.stats;
+    updateStatsUI();
+    showChapterTwoState();
+  } catch (error) {
+    $("#chapter-two-result-status").textContent = error instanceof Error ? error.message : "这份成绩单还不能这样解释。";
+  }
+}
+
+function handleChapterTwoMessage(messageId: AsyncMessageId) {
+  if (!chapterTwo) return;
+  try {
+    const result = sendAsyncMessage(chapterTwo, longTermProgress, stats, messageId);
+    chapterTwo = result.chapterTwo;
+    longTermProgress = result.progress;
+    stats = result.stats;
+    updateStatsUI();
+    showChapterTwoState();
+  } catch (error) {
+    $("#chapter-two-message-status").textContent = error instanceof Error ? error.message : "这条留言还不能发送。";
+  }
+}
+
+function handleChapterTwoBusAction(actionId: BusActionId) {
+  if (!chapterTwo) return;
+  try {
+    const result = playBusAction(chapterTwo, longTermProgress, stats, actionId);
+    chapterTwo = result.chapterTwo;
+    longTermProgress = result.progress;
+    stats = result.stats;
+    updateStatsUI();
+    showChapterTwoState();
+  } catch (error) {
+    $("#chapter-two-bus-status").textContent = error instanceof Error ? error.message : "这条路线现在不可用。";
+  }
+}
+
 function saveChapterOneNow() {
   autoSave();
   $("#schedule-status").textContent = "第一章进度已保存。";
@@ -847,6 +954,7 @@ function savePayload(nextNode: string | null = null) {
     openingProfile,
     location,
     chapterOne,
+    chapterTwo,
     progress: longTermProgress
   });
 }
@@ -874,7 +982,11 @@ function locationLabel(location: GameLocation): string {
   if (location.kind === "chapter-one-sentence") return "第一章 · 句子拼装";
   if (location.kind === "chapter-one-review") return `第一章 · 第${location.week}周复盘`;
   if (location.kind === "chapter-one-exam") return "第一章 · 一模";
-  return "第一章 · 章末";
+  if (location.kind === "chapter-one-complete") return "第一章 · 章末";
+  if (location.kind === "chapter-two-result") return "第二章 · 成绩单";
+  if (location.kind === "chapter-two-message") return "第二章 · 异步留言";
+  if (location.kind === "chapter-two-bus") return "第二章 · 错峰公交";
+  return "第二章 · 章末";
 }
 
 function renderSaveSlots() {
@@ -936,6 +1048,7 @@ function applyLoadedSave(save: SaveDataV4) {
     decisionIds = save.decisionIds;
     openingProfile = save.openingProfile;
     chapterOne = save.chapterOne;
+    chapterTwo = save.chapterTwo;
     longTermProgress = save.progress;
     gameLocation = save.location;
     currentNodeId = save.currentNodeId;
@@ -958,6 +1071,8 @@ function applyLoadedSave(save: SaveDataV4) {
       goTo(save.location.nodeId, true);
     } else if (save.location.kind === "opening-profile") {
       showOpeningProfile();
+    } else if (chapterTwo && openingProfile && save.location.kind.startsWith("chapter-two-")) {
+      showChapterTwoState(false);
     } else if (chapterOne && openingProfile) {
       showChapterOneState(false);
     } else if (openingProfile) {
@@ -1011,6 +1126,13 @@ chapterOneUI = createChapterOneUI({
   onReplay: resetAndReplay
 });
 
+chapterTwoUI = createChapterTwoUI({
+  onResultFraming: handleChapterTwoFraming,
+  onMessage: handleChapterTwoMessage,
+  onBusAction: handleChapterTwoBusAction,
+  onReturnTitle: showTitle
+});
+
 dom.dialogue.addEventListener("click", advance);
 dom.dialogue.addEventListener("keydown", (event) => {
   if (event.key === "Enter" || event.key === " ") {
@@ -1046,6 +1168,7 @@ $("#replay-btn").addEventListener("click", resetAndReplay);
 $("#title-btn").addEventListener("click", showTitle);
 $("#carry-forward-btn").addEventListener("click", showOpeningProfile);
 $("#profile-start-btn").addEventListener("click", startChapterOne);
+$("#chapter-two-start-btn").addEventListener("click", startChapterTwo);
 $("#profile-replay-btn").addEventListener("click", resetAndReplay);
 $("#profile-title-btn").addEventListener("click", showTitle);
 

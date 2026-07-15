@@ -8,7 +8,7 @@ import type {
   VisibleStatKey
 } from "./types";
 
-export const GAME_VERSION = "0.4.1";
+export const GAME_VERSION = "0.5.0";
 export const SAVE_VERSION = 4 as const;
 export const SAVE_KEY = "after-evening-study-save-v4";
 export const MANUAL_SAVE_KEYS = {

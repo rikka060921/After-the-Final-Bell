@@ -2,6 +2,7 @@ import { STAT_KEYS } from "./types";
 import { EXAM_STAGES } from "./chapter-one/exam";
 import { CHAPTER_ONE_WEEKS, ACTIVITIES, createWeekSlots } from "./chapter-one/model";
 import { SENTENCE_FRAGMENTS } from "./chapter-one/sentence";
+import { ASYNC_MESSAGES, BUS_ACTIONS, BUS_STOPS, RESULT_FRAMINGS } from "./chapter-two/model";
 
 export interface ContentIssue {
   scope: "weeks" | "activities" | "sentence" | "exam";
@@ -107,4 +108,33 @@ export function validateChapterOneContent(): ContentIssue[] {
     });
   });
   return issues;
+}
+
+export function validateChapterTwoContent(): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  const framingIds = RESULT_FRAMINGS.map((choice) => choice.id);
+  if (new Set(framingIds).size !== framingIds.length || framingIds.length < 3) {
+    issues.push({ scope: "exam", id: "chapter-two-framing", message: "第二章必须有三个唯一成绩单解释方式。" });
+  }
+  const messageIds = ASYNC_MESSAGES.map((message) => message.id);
+  if (new Set(messageIds).size !== messageIds.length || messageIds.length < 3) {
+    issues.push({ scope: "sentence", id: "chapter-two-message", message: "第二章必须有三个唯一异步留言方式。" });
+  }
+  ASYNC_MESSAGES.forEach((message) => {
+    if (message.wordCount > 18 || message.wordCount < 1) {
+      issues.push({ scope: "sentence", id: message.id, message: "异步留言必须在一至十八字之间。" });
+    }
+  });
+  if (BUS_STOPS.length < 4 || new Set(BUS_STOPS).size !== BUS_STOPS.length) {
+    issues.push({ scope: "weeks", id: "chapter-two-stops", message: "公交路线至少需要四个唯一站点。" });
+  }
+  const busActionIds = BUS_ACTIONS.map((action) => action.id);
+  if (new Set(busActionIds).size !== busActionIds.length || busActionIds.length < 4) {
+    issues.push({ scope: "activities", id: "chapter-two-bus-actions", message: "公交路线必须有四个唯一动作。" });
+  }
+  return issues;
+}
+
+export function validateFormalContent(): ContentIssue[] {
+  return [...validateChapterOneContent(), ...validateChapterTwoContent()];
 }

@@ -10,6 +10,7 @@ import {
 } from "../src/config";
 import { createOpeningProfile } from "../src/opening-profile";
 import { initializeChapterOne } from "../src/chapter-one/opening";
+import { initializeChapterTwo } from "../src/chapter-two/opening";
 import {
   createSaveData,
   parseSaveData,
@@ -80,6 +81,44 @@ function plannerFixture(withPromise = false) {
     progress: initialized.progress
   });
   return { profile, save };
+}
+
+function markFirstChapterComplete(state: ReturnType<typeof initializeChapterOne>["chapterOne"]) {
+  state.currentWeek = 4;
+  state.phase = "complete";
+  state.plans.forEach((plan) => {
+    plan.committed = true;
+    plan.resolved = true;
+  });
+  state.results = [1, 2, 3, 4].map((week) => ({
+    week: week as 1 | 2 | 3 | 4,
+    title: `第${week}周`,
+    completed: [],
+    changes: [],
+    echoes: [],
+    nextWeek: [],
+    zhouAction: ""
+  }));
+  state.seatGame = {
+    turn: 1,
+    carrierSeatId: "r6c2",
+    attention: 0,
+    log: [],
+    resolved: true,
+    outcome: "returned"
+  };
+  state.sentence = {
+    fragmentIds: ["open-ask", "close-note"],
+    text: "我想问能说的部分。",
+    actionTypes: ["explain", "agency"],
+    pageAction: "intact"
+  };
+  state.exam.resolved = true;
+  state.exam.step = 4;
+  state.exam.actionIds = ["scan-first", "skip-mark", "recall-routine", "check-errors"];
+  state.exam.band = "稳定";
+  state.exam.effectiveScore = 60;
+  return state;
 }
 
 describe("save migration", () => {
@@ -317,5 +356,67 @@ describe("save migration", () => {
     raw.settings.skipRead = true;
     const parsed = parseSaveData(JSON.stringify(raw), story);
     expect(parsed?.settings.skipRead).toBe(true);
+  });
+
+  it("round-trips a chapter-two result-letter location", () => {
+    const { profile } = plannerFixture();
+    const first = initializeChapterOne(profile);
+    markFirstChapterComplete(first.chapterOne);
+    first.progress.facts.push("chapter-one-complete");
+    const second = initializeChapterTwo(first.chapterOne, first.progress, initialStats());
+    const save = createSaveData({
+      playerName: "陈舟",
+      stats: initialStats(),
+      currentNodeId: null,
+      currentBackground: "gate",
+      portraitVisible: false,
+      sceneLabel: "第二章",
+      timeLabel: "寒假前",
+      history: [],
+      settings: { speed: 22, fontSize: 20, reducedMotion: false, skipRead: false },
+      mode: "story",
+      notebook: defaultNotebookState(),
+      promises: [],
+      decisionIds: [],
+      openingProfile: profile,
+      location: { kind: "chapter-two-result" },
+      chapterOne: first.chapterOne,
+      chapterTwo: second,
+      progress: first.progress
+    });
+    const parsed = parseSaveData(JSON.stringify(save), story);
+    expect(parsed?.location).toEqual({ kind: "chapter-two-result" });
+    expect(parsed?.chapterTwo?.phase).toBe("result-letter");
+  });
+
+  it("drops an impossible chapter-two phase instead of routing into a dead screen", () => {
+    const { profile } = plannerFixture();
+    const first = initializeChapterOne(profile);
+    markFirstChapterComplete(first.chapterOne);
+    first.progress.facts.push("chapter-one-complete");
+    const second = initializeChapterTwo(first.chapterOne, first.progress, initialStats());
+    const save = createSaveData({
+      playerName: "陈舟",
+      stats: initialStats(),
+      currentNodeId: null,
+      currentBackground: "gate",
+      portraitVisible: false,
+      sceneLabel: "第二章",
+      timeLabel: "寒假前",
+      history: [],
+      settings: { speed: 22, fontSize: 20, reducedMotion: false, skipRead: false },
+      mode: "story",
+      notebook: defaultNotebookState(),
+      promises: [],
+      decisionIds: [],
+      openingProfile: profile,
+      location: { kind: "chapter-two-complete" },
+      chapterOne: first.chapterOne,
+      chapterTwo: { ...second, phase: "complete", framing: null },
+      progress: first.progress
+    });
+    const parsed = parseSaveData(JSON.stringify(save), story);
+    expect(parsed?.chapterTwo).toBeNull();
+    expect(parsed?.location).toEqual({ kind: "opening-profile" });
   });
 });

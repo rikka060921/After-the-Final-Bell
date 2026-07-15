@@ -51,6 +51,10 @@ export type ChapterOneActivityId =
   | "promise-async";
 export type AssignmentSource = "player" | "promise" | "zhou-tang";
 export type AssignmentStatus = "planned" | "done" | "missed" | "rescheduled";
+export type ChapterTwoPhase = "result-letter" | "async-message" | "bus-route" | "complete";
+export type ResultFramingId = "full-context" | "progress-first" | "pressure-first";
+export type AsyncMessageId = "ask-plan" | "leave-space" | "promise-solve";
+export type BusActionId = "buy-breakfast" | "wait" | "walk" | "express";
 
 export type GameStats = Record<StatKey, number>;
 export type StatEffects = Partial<Record<StatKey, number>>;
@@ -168,7 +172,11 @@ export type GameLocation =
   | { kind: "chapter-one-sentence" }
   | { kind: "chapter-one-review"; week: ChapterOneWeek }
   | { kind: "chapter-one-exam" }
-  | { kind: "chapter-one-complete" };
+  | { kind: "chapter-one-complete" }
+  | { kind: "chapter-two-result" }
+  | { kind: "chapter-two-message" }
+  | { kind: "chapter-two-bus" }
+  | { kind: "chapter-two-complete" };
 
 export interface ChapterOneSlot {
   id: string;
@@ -263,6 +271,28 @@ export interface ChapterOneState {
   exam: MockExamState;
 }
 
+export interface ChapterTwoState {
+  schemaVersion: 1;
+  phase: ChapterTwoPhase;
+  resultBand: NonNullable<MockExamState["band"]>;
+  effectiveScore: number;
+  framing: ResultFramingId | null;
+  message: { id: AsyncMessageId; wordCount: number; text: string } | null;
+  familyTrust: number;
+  familyPressure: number;
+  zhouDistance: number;
+  bus: {
+    stopIndex: number;
+    minutes: number;
+    breakfast: boolean;
+    delay: number;
+    resolved: boolean;
+    outcome: "pending" | "met" | "missed" | "late";
+    log: string[];
+  };
+  resolvedEventIds: string[];
+}
+
 export interface SaveDataV1 {
   version: 1;
   playerName: string;
@@ -297,6 +327,7 @@ export interface SaveDataV4 extends Omit<SaveDataV3, "version" | "currentNodeId"
   readNodeIds: string[];
   location: GameLocation;
   chapterOne: ChapterOneState | null;
+  chapterTwo: ChapterTwoState | null;
   progress: LongTermProgress;
 }
 
