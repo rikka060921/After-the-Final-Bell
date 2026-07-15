@@ -10,7 +10,14 @@ import {
 } from "../src/config";
 import { createOpeningProfile } from "../src/opening-profile";
 import { initializeChapterOne } from "../src/chapter-one/opening";
-import { createSaveData, parseSaveData, readStoredSave, type StorageLike } from "../src/save";
+import {
+  createSaveData,
+  parseSaveData,
+  readManualSave,
+  readStoredSave,
+  writeManualSave,
+  type StorageLike
+} from "../src/save";
 import { story } from "../src/story";
 import type { PromiseEntry } from "../src/types";
 
@@ -62,7 +69,7 @@ function plannerFixture(withPromise = false) {
     sceneLabel: "第一章",
     timeLabel: "第一周",
     history: [],
-    settings: { speed: 22, fontSize: 20, reducedMotion: false },
+    settings: { speed: 22, fontSize: 20, reducedMotion: false, skipRead: false },
     mode: "story",
     notebook: defaultNotebookState(),
     promises,
@@ -102,6 +109,7 @@ describe("save migration", () => {
     expect(save?.mode).toBe("story");
     expect(save?.notebook.slots).toHaveLength(6);
     expect(save?.promises).toEqual([]);
+    expect(save?.readNodeIds).toContain("intro_02");
     expect(storage.getItem(SAVE_KEY)).not.toBeNull();
   });
 
@@ -190,7 +198,7 @@ describe("save migration", () => {
       sceneLabel: "第一章",
       timeLabel: "第一周",
       history: [],
-      settings: { speed: 22, fontSize: 20, reducedMotion: false },
+      settings: { speed: 22, fontSize: 20, reducedMotion: false, skipRead: false },
       mode: "story",
       notebook: defaultNotebookState(),
       promises: [],
@@ -290,5 +298,24 @@ describe("save migration", () => {
       source: "promise",
       activityId: "promise-review"
     });
+  });
+
+  it("keeps manual save slots independent from the automatic save", () => {
+    const storage = new MemoryStorage();
+    const { save } = plannerFixture();
+    writeManualSave(storage, save, "slot-2");
+    expect(readManualSave(storage, story, "slot-2")?.location).toEqual(save.location);
+    expect(storage.getItem(SAVE_KEY)).toBeNull();
+    storage.setItem("after-evening-study-manual-save-3", "not json");
+    expect(readManualSave(storage, story, "slot-3")).toBeNull();
+    expect(storage.getItem("after-evening-study-manual-save-3")).toBeNull();
+  });
+
+  it("preserves the replay setting through v4 parsing", () => {
+    const { save } = plannerFixture();
+    const raw = JSON.parse(JSON.stringify(save));
+    raw.settings.skipRead = true;
+    const parsed = parseSaveData(JSON.stringify(raw), story);
+    expect(parsed?.settings.skipRead).toBe(true);
   });
 });

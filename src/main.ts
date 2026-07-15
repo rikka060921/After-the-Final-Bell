@@ -32,11 +32,14 @@ import { createChapterOneUI, type ChapterOneUI } from "./chapter-one/ui";
 import {
   createSaveData,
   hasStoredSave,
+  readManualSave,
   readStoredSave,
+  writeManualSave,
   writeStoredSave
 } from "./save";
 import { applyStatEffects } from "./state";
 import { story } from "./story";
+import { nextUnreadLinearNode } from "./story-progress";
 import {
   VISIBLE_STAT_KEYS,
   type BackgroundKey,
@@ -54,6 +57,7 @@ import {
   type PromiseEntry,
   type SeatActionId,
   type SentenceAssemblyRecord,
+  type SaveDataV4,
   type StatChange,
   type StatEffects,
   type StoryChoice
@@ -106,6 +110,7 @@ let isTyping = false;
 let fullText = "";
 let typingTimer: ReturnType<typeof setInterval> | number | null = null;
 let history: HistoryEntry[] = [];
+let readNodeIds: string[] = [];
 let inputLocked = false;
 let settings: GameSettings = defaultSettings();
 let gameMode: GameMode = defaultMode();
@@ -121,6 +126,10 @@ let audioContext: AudioContext | null = null;
 
 function interpolate(text = ""): string {
   return text.replaceAll("{{player}}", playerName);
+}
+
+function storyTarget(nodeId: string): string {
+  return settings.skipRead ? nextUnreadLinearNode(story, nodeId, readNodeIds) : nodeId;
 }
 
 function initAudio() {
@@ -238,6 +247,7 @@ function newGame() {
   currentBackground = "classroom";
   portraitVisible = false;
   history = [];
+  readNodeIds = [];
   inputLocked = false;
   notebook = defaultNotebookState();
   promises = [];
@@ -379,6 +389,8 @@ function goTo(nodeId: string, fromLoad = false) {
   }
   inputLocked = false;
   currentNodeId = nodeId;
+  const wasRead = readNodeIds.includes(nodeId);
+  readNodeIds = [...new Set([...readNodeIds, nodeId])].slice(-240);
   gameLocation = { kind: "story", graphId: "prologue", nodeId };
   dom.choices.replaceChildren();
   if (node.bg) setBackground(node.bg);
@@ -390,7 +402,7 @@ function goTo(nodeId: string, fromLoad = false) {
   dom.speaker.textContent = speaker;
   dom.scene.textContent = node.scene || dom.scene.textContent;
   dom.time.textContent = node.time || dom.time.textContent;
-  dom.progress.textContent = `序章 · ${node.step || "--"}`;
+  dom.progress.textContent = `序章 · ${node.step || "--"}${wasRead ? " · 已读" : ""}`;
   dom.chapter.textContent = Number(node.step || 0) >= 21 ? "第三节 · 校门外" : Number(node.step || 0) >= 11 ? "第二节 · 走廊" : "第一节 · 错题本";
   addHistory(speaker, text);
 
@@ -434,7 +446,7 @@ function advance() {
     showEnding();
     return;
   }
-  if (node.next) goTo(node.next);
+  if (node.next) goTo(storyTarget(node.next));
 }
 
 function revealChoices(choices: StoryChoice[]) {
@@ -448,7 +460,10 @@ function revealChoices(choices: StoryChoice[]) {
     const copy = button.querySelector<HTMLElement>(".choice-copy");
     const hint = button.querySelector<HTMLElement>(".choice-hint");
     if (copy) copy.textContent = interpolate(choice.text);
-    if (hint) hint.textContent = gameMode === "story" ? choice.hint || "" : "";
+    if (hint) {
+      const readMark = readNodeIds.includes(choice.next) ? " · 已读" : "";
+      hint.textContent = gameMode === "story" ? `${choice.hint || ""}${readMark}` : readMark.trim();
+    }
     button.addEventListener("click", () => choose(choice));
     dom.choices.append(button);
   });
@@ -469,8 +484,9 @@ function choose(choice: StoryChoice) {
   }
   dom.choices.replaceChildren();
   applyEffects(choice.effects || {});
-  autoSave(choice.next);
-  setTimeout(() => goTo(choice.next), settings.reducedMotion ? 0 : 260);
+  const targetNode = storyTarget(choice.next);
+  autoSave(targetNode);
+  setTimeout(() => goTo(targetNode), settings.reducedMotion ? 0 : 260);
 }
 
 function renderLedger() {
@@ -823,6 +839,7 @@ function savePayload(nextNode: string | null = null) {
     timeLabel: dom.time.textContent ?? "",
     history,
     settings,
+    readNodeIds,
     mode: gameMode,
     notebook,
     promises,
@@ -849,13 +866,69 @@ function manualSave() {
   tone(720, .12, .02);
 }
 
-function loadGame() {
-  try {
-    const save = readStoredSave(localStorage, story);
-    if (!save) return;
+function locationLabel(location: GameLocation): string {
+  if (location.kind === "story") return `序章 · ${story[location.nodeId]?.step ?? "--"}`;
+  if (location.kind === "opening-profile") return "第一章 · 开局档案";
+  if (location.kind === "chapter-one-planner") return `第一章 · 第${location.week}周排程`;
+  if (location.kind === "chapter-one-seat") return "第一章 · 座位路线";
+  if (location.kind === "chapter-one-sentence") return "第一章 · 句子拼装";
+  if (location.kind === "chapter-one-review") return `第一章 · 第${location.week}周复盘`;
+  if (location.kind === "chapter-one-exam") return "第一章 · 一模";
+  return "第一章 · 章末";
+}
+
+function renderSaveSlots() {
+  const list = $("#save-slot-list");
+  list.replaceChildren();
+  (["slot-1", "slot-2", "slot-3"] as const).forEach((slot) => {
+    const save = readManualSave(localStorage, story, slot);
+    const card = document.createElement("article");
+    card.className = "save-slot";
+    const copy = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = `槽位 ${slot.slice(-1)}`;
+    const detail = document.createElement("p");
+    detail.textContent = save
+      ? `${locationLabel(save.location)} · ${new Date(save.savedAt).toLocaleString("zh-CN", { hour12: false })}`
+      : "空槽位 · 尚未保存";
+    copy.append(title, detail);
+    const actions = document.createElement("div");
+    actions.className = "save-slot-actions";
+    const saveButton = document.createElement("button");
+    saveButton.type = "button";
+    saveButton.className = "primary-btn";
+    saveButton.textContent = "保存到这里";
+    saveButton.addEventListener("click", () => {
+      writeManualSave(localStorage, savePayload(), slot);
+      renderSaveSlots();
+      $("#save-status").textContent = `已保存到槽位 ${slot.slice(-1)}。`;
+      tone(720, .12, .02);
+    });
+    const loadButton = document.createElement("button");
+    loadButton.type = "button";
+    loadButton.className = "ghost-btn";
+    loadButton.textContent = "读取";
+    loadButton.disabled = !save;
+    loadButton.addEventListener("click", () => {
+      const latest = readManualSave(localStorage, story, slot);
+      if (!latest) {
+        renderSaveSlots();
+        return;
+      }
+      closePanel("save-slots-panel");
+      applyLoadedSave(latest);
+    });
+    actions.append(saveButton, loadButton);
+    card.append(copy, actions);
+    list.append(card);
+  });
+}
+
+function applyLoadedSave(save: SaveDataV4) {
     playerName = save.playerName || "陈舟";
     stats = { ...initialStats(), ...save.stats };
     history = save.history;
+    readNodeIds = save.readNodeIds;
     settings = { ...defaultSettings(), ...save.settings };
     gameMode = save.mode;
     notebook = save.notebook;
@@ -893,6 +966,13 @@ function loadGame() {
       showTitle();
     }
     tone(560, .09, .02);
+}
+
+function loadGame() {
+  try {
+    const save = readStoredSave(localStorage, story);
+    if (!save) return;
+    applyLoadedSave(save);
   } catch (error) {
     console.warn("Load failed", error);
     refreshContinueButton();
@@ -909,6 +989,7 @@ function applySettings() {
   $<HTMLInputElement>("#speed-range").value = String(settings.speed);
   $<HTMLInputElement>("#font-range").value = String(settings.fontSize);
   $<HTMLInputElement>("#motion-toggle").checked = settings.reducedMotion;
+  $<HTMLInputElement>("#skip-read-toggle").checked = settings.skipRead;
 }
 
 function resetAndReplay() {
@@ -958,6 +1039,7 @@ $("#save-btn").addEventListener("click", manualSave);
 $("#load-btn").addEventListener("click", loadGame);
 $("#history-btn").addEventListener("click", () => { renderHistory(); openPanel("history-panel"); });
 $("#ledger-btn").addEventListener("click", () => { renderLedger(); openPanel("ledger-panel"); });
+$("#save-slots-btn").addEventListener("click", () => { renderSaveSlots(); openPanel("save-slots-panel"); });
 $("#settings-btn").addEventListener("click", () => openPanel("settings-panel"));
 $("#restart-btn").addEventListener("click", showTitle);
 $("#replay-btn").addEventListener("click", resetAndReplay);
@@ -979,6 +1061,10 @@ $<HTMLInputElement>("#font-range").addEventListener("input", (event) => {
 $<HTMLInputElement>("#motion-toggle").addEventListener("change", (event) => {
   settings.reducedMotion = (event.currentTarget as HTMLInputElement).checked;
   applySettings();
+  autoSave();
+});
+$<HTMLInputElement>("#skip-read-toggle").addEventListener("change", (event) => {
+  settings.skipRead = (event.currentTarget as HTMLInputElement).checked;
   autoSave();
 });
 

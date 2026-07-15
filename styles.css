@@ -485,6 +485,13 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .ledger-entry strong { color: var(--amber-soft); }
 .ledger-entry em { color: #8ea0ae; font-size: 10px; font-style: normal; }
 .ledger-entry p { margin: 9px 0; color: #c4d0d8; font-size: 13px; line-height: 1.65; }
+.save-slots-card { width: min(760px, calc(100vw - 28px)); }
+.save-slot-list { display: grid; gap: 10px; margin-top: 18px; }
+.save-slot { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.025); }
+.save-slot h3 { margin: 0 0 5px; color: var(--amber-soft); font-size: 15px; }
+.save-slot p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.save-slot-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.save-slot-actions button { min-width: 74px; padding: 8px 10px; }
 .ledger-entry small { color: #7d8f9d; }
 
 .toast-stack { position: absolute; top: 90px; right: 28px; z-index: 50; display: grid; gap: 8px; pointer-events: none; }
@@ -813,6 +820,9 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   .sentence-submit-bar { display: grid; }
   .sentence-submit-bar button { width: 100%; }
   .review-grid { grid-template-columns: 1fr 1fr; }
+  .save-slot { grid-template-columns: 1fr; }
+  .save-slot-actions { justify-content: stretch; }
+  .save-slot-actions button { flex: 1; }
   .exam-actions { grid-template-columns: 1fr; }
   .exam-action-btn { min-height: 0; }
 }

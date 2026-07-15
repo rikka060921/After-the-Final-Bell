@@ -148,6 +148,7 @@
         <button id="load-btn">读取存档 <kbd>L</kbd></button>
         <button id="history-btn">对话记录</button>
         <button id="ledger-btn">承诺账本</button>
+        <button id="save-slots-btn">存档槽位</button>
         <button id="settings-btn">阅读设置</button>
         <button id="restart-btn" class="danger-text">返回标题</button>
       </div>
@@ -190,6 +191,20 @@
         <label class="toggle-row">减少动态效果
           <input id="motion-toggle" type="checkbox">
         </label>
+        <label class="toggle-row">只跳过已读对白
+          <input id="skip-read-toggle" type="checkbox">
+        </label>
+      </div>
+    </section>
+
+    <section id="save-slots-panel" class="modal-panel" aria-labelledby="save-slots-title">
+      <div class="modal-card save-slots-card">
+        <div class="panel-header">
+          <div><span class="panel-kicker">SAVE SLOTS</span><h2 id="save-slots-title">手动存档</h2></div>
+          <button class="close-panel icon-btn" data-close="save-slots-panel" aria-label="关闭">×</button>
+        </div>
+        <p class="ledger-intro">自动存档仍用于“继续游戏”。手动槽位适合保留不同承诺、座位路线或纸页处理。</p>
+        <div id="save-slot-list" class="save-slot-list"></div>
       </div>
     </section>
 

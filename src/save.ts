@@ -2,6 +2,7 @@ import {
   FOUNDATION_SAVE_KEY,
   GAME_VERSION,
   LEGACY_SAVE_KEY,
+  MANUAL_SAVE_KEYS,
   PREVIOUS_SAVE_KEY,
   SAVE_KEY,
   SAVE_VERSION,
@@ -40,6 +41,8 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
+export type ManualSaveSlot = keyof typeof MANUAL_SAVE_KEYS;
+
 export interface SaveSnapshot {
   playerName: string;
   stats: GameStats;
@@ -50,6 +53,7 @@ export interface SaveSnapshot {
   timeLabel: string;
   history: HistoryEntry[];
   settings: GameSettings;
+  readNodeIds?: string[];
   mode: GameMode;
   notebook: NotebookState;
   promises: PromiseEntry[];
@@ -99,8 +103,17 @@ function sanitizeSettings(value: unknown): GameSettings {
     speed: asFiniteNumber(value.speed, defaults.speed),
     fontSize: asFiniteNumber(value.fontSize, defaults.fontSize),
     reducedMotion:
-      typeof value.reducedMotion === "boolean" ? value.reducedMotion : defaults.reducedMotion
+      typeof value.reducedMotion === "boolean" ? value.reducedMotion : defaults.reducedMotion,
+    skipRead: typeof value.skipRead === "boolean" ? value.skipRead : defaults.skipRead
   };
+}
+
+function sanitizeReadNodeIds(value: unknown, graph: StoryGraph, currentNodeId: string | null): string[] {
+  const ids = Array.isArray(value)
+    ? value.filter((id): id is string => typeof id === "string" && Boolean(graph[id]))
+    : [];
+  if (currentNodeId) ids.push(currentNodeId);
+  return [...new Set(ids)].slice(-240);
 }
 
 function sanitizeHistory(value: unknown): HistoryEntry[] {
@@ -238,6 +251,7 @@ export function createSaveData(snapshot: SaveSnapshot): SaveDataV4 {
     stats: { ...snapshot.stats },
     history: snapshot.history.map((entry) => ({ ...entry })),
     settings: { ...snapshot.settings },
+    readNodeIds: [...(snapshot.readNodeIds ?? snapshot.history.map((entry) => entry.node))],
     notebook: { slots: [...snapshot.notebook.slots], committed: snapshot.notebook.committed },
     promises: snapshot.promises.map((promise) => ({ ...promise })),
     decisionIds: [...snapshot.decisionIds],
@@ -276,6 +290,7 @@ export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV4 | null
     playerName: asString(value.playerName, "陈舟").trim().slice(0, 6) || "陈舟",
     stats: sanitizeStats(value.stats),
     currentNodeId: location.kind === "story" ? location.nodeId : currentNodeId,
+    readNodeIds: sanitizeReadNodeIds(value.readNodeIds, graph, currentNodeId),
     currentBackground: backgrounds.has(background) ? background : "classroom",
     portraitVisible: Boolean(value.portraitVisible),
     sceneLabel: asString(value.sceneLabel),
@@ -311,6 +326,30 @@ export function readStoredSave(storage: StorageLike, graph: StoryGraph): SaveDat
 
 export function writeStoredSave(storage: StorageLike, save: SaveDataV4): void {
   storage.setItem(SAVE_KEY, JSON.stringify(save));
+}
+
+export function readManualSave(
+  storage: StorageLike,
+  graph: StoryGraph,
+  slot: ManualSaveSlot
+): SaveDataV4 | null {
+  const key = MANUAL_SAVE_KEYS[slot];
+  const raw = storage.getItem(key);
+  if (!raw) return null;
+  const save = parseSaveData(raw, graph);
+  if (!save) {
+    storage.removeItem(key);
+    return null;
+  }
+  return save;
+}
+
+export function writeManualSave(
+  storage: StorageLike,
+  save: SaveDataV4,
+  slot: ManualSaveSlot
+): void {
+  storage.setItem(MANUAL_SAVE_KEYS[slot], JSON.stringify(save));
 }
 
 export function hasStoredSave(storage: StorageLike, graph: StoryGraph): boolean {

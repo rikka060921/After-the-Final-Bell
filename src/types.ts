@@ -104,6 +104,7 @@ export interface GameSettings {
   speed: number;
   fontSize: number;
   reducedMotion: boolean;
+  skipRead: boolean;
 }
 
 export interface NotebookState {
@@ -293,6 +294,7 @@ export interface SaveDataV3 extends Omit<SaveDataV2, "version"> {
 export interface SaveDataV4 extends Omit<SaveDataV3, "version" | "currentNodeId"> {
   version: 4;
   currentNodeId: string | null;
+  readNodeIds: string[];
   location: GameLocation;
   chapterOne: ChapterOneState | null;
   progress: LongTermProgress;
