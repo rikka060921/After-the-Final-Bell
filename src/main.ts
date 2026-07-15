@@ -45,6 +45,7 @@ import {
 import { applyStatEffects } from "./state";
 import { story } from "./story";
 import { nextUnreadLinearNode } from "./story-progress";
+import { CHAPTER_CATALOG, chapterAvailability } from "./chapter-catalog";
 import {
   VISIBLE_STAT_KEYS,
   type BackgroundKey,
@@ -1036,6 +1037,47 @@ function renderSaveSlots() {
   });
 }
 
+function renderChapterCatalog() {
+  const list = $("#chapter-catalog-list");
+  list.replaceChildren();
+  CHAPTER_CATALOG.forEach((chapter) => {
+    const status = chapterAvailability(longTermProgress.facts, chapter);
+    const entry = document.createElement("article");
+    entry.className = `chapter-catalog-entry${status === "locked" ? " is-locked" : ""}`;
+    const copy = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = `${chapter.label} · ${chapter.title}`;
+    const summary = document.createElement("p");
+    summary.textContent = chapter.summary;
+    const state = document.createElement("small");
+    state.textContent = status === "locked" ? "完成前置章节后解锁" : status === "in-development" ? "已解锁 · 当前版本开发中" : "可玩";
+    copy.append(title, summary, state);
+    const action = document.createElement("button");
+    action.type = "button";
+    const canEnter =
+      chapter.id === "prologue" ||
+      (chapter.id === "chapter-one" && Boolean(openingProfile)) ||
+      (chapter.id === "chapter-two" && chapterOne?.phase === "complete");
+    action.className = status === "locked" || !canEnter ? "ghost-btn" : "primary-btn";
+    action.disabled = status === "locked" || !canEnter;
+    action.textContent = chapter.id === "prologue"
+      ? "重新开始"
+      : chapter.id === "chapter-one"
+        ? "进入第一章"
+        : chapter.id === "chapter-two"
+          ? "进入第二章"
+          : "开发中";
+    action.addEventListener("click", () => {
+      closePanel("chapter-catalog-panel");
+      if (chapter.id === "prologue") resetAndReplay();
+      else if (chapter.id === "chapter-one" && openingProfile) startChapterOne();
+      else if (chapter.id === "chapter-two" && chapterOne?.phase === "complete") startChapterTwo();
+    });
+    entry.append(copy, action);
+    list.append(entry);
+  });
+}
+
 function applyLoadedSave(save: SaveDataV4) {
     playerName = save.playerName || "陈舟";
     stats = { ...initialStats(), ...save.stats };
@@ -1162,6 +1204,8 @@ $("#load-btn").addEventListener("click", loadGame);
 $("#history-btn").addEventListener("click", () => { renderHistory(); openPanel("history-panel"); });
 $("#ledger-btn").addEventListener("click", () => { renderLedger(); openPanel("ledger-panel"); });
 $("#save-slots-btn").addEventListener("click", () => { renderSaveSlots(); openPanel("save-slots-panel"); });
+$("#title-catalog-btn").addEventListener("click", () => { renderChapterCatalog(); openPanel("chapter-catalog-panel"); });
+$("#menu-catalog-btn").addEventListener("click", () => { renderChapterCatalog(); openPanel("chapter-catalog-panel"); });
 $("#settings-btn").addEventListener("click", () => openPanel("settings-panel"));
 $("#restart-btn").addEventListener("click", showTitle);
 $("#replay-btn").addEventListener("click", resetAndReplay);

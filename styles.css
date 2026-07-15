@@ -492,6 +492,14 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .save-slot p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
 .save-slot-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .save-slot-actions button { min-width: 74px; padding: 8px 10px; }
+.chapter-catalog-card { width: min(820px, calc(100vw - 28px)); }
+.chapter-catalog-list { display: grid; gap: 10px; margin-top: 18px; }
+.chapter-catalog-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 15px; border: 1px solid var(--line); background: rgba(255,255,255,.025); }
+.chapter-catalog-entry h3 { margin: 0 0 5px; color: var(--amber-soft); font-size: 16px; }
+.chapter-catalog-entry p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.chapter-catalog-entry small { display: block; margin-top: 7px; color: #7fc2a1; font-size: 11px; }
+.chapter-catalog-entry.is-locked small { color: #778996; }
+.chapter-catalog-entry button { min-width: 90px; padding: 8px 10px; }
 .ledger-entry small { color: #7d8f9d; }
 
 .toast-stack { position: absolute; top: 90px; right: 28px; z-index: 50; display: grid; gap: 8px; pointer-events: none; }
@@ -840,6 +848,8 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   .save-slot { grid-template-columns: 1fr; }
   .save-slot-actions { justify-content: stretch; }
   .save-slot-actions button { flex: 1; }
+  .chapter-catalog-entry { grid-template-columns: 1fr; }
+  .chapter-catalog-entry button { width: 100%; }
   .exam-actions { grid-template-columns: 1fr; }
   .exam-action-btn { min-height: 0; }
   .message-budget, .bus-status-card { display: grid; gap: 5px; }

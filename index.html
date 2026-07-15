@@ -24,6 +24,7 @@
       <div class="title-actions">
         <button id="new-game-btn" class="primary-btn">开始序章</button>
         <button id="continue-btn" class="ghost-btn" disabled>继续游戏</button>
+        <button id="title-catalog-btn" class="ghost-btn">章节目录</button>
       </div>
       <p class="title-note">本故事发生在虚构城市与学校。人物、校名及事件均为虚构。</p>
     </section>
@@ -149,6 +150,7 @@
         <button id="history-btn">对话记录</button>
         <button id="ledger-btn">承诺账本</button>
         <button id="save-slots-btn">存档槽位</button>
+        <button id="menu-catalog-btn">章节目录</button>
         <button id="settings-btn">阅读设置</button>
         <button id="restart-btn" class="danger-text">返回标题</button>
       </div>
@@ -205,6 +207,17 @@
         </div>
         <p class="ledger-intro">自动存档仍用于“继续游戏”。手动槽位适合保留不同承诺、座位路线或纸页处理。</p>
         <div id="save-slot-list" class="save-slot-list"></div>
+      </div>
+    </section>
+
+    <section id="chapter-catalog-panel" class="modal-panel" aria-labelledby="chapter-catalog-title">
+      <div class="modal-card chapter-catalog-card">
+        <div class="panel-header">
+          <div><span class="panel-kicker">CHAPTER SELECT</span><h2 id="chapter-catalog-title">章节目录</h2></div>
+          <button class="close-panel icon-btn" data-close="chapter-catalog-panel" aria-label="关闭">×</button>
+        </div>
+        <p class="ledger-intro">章节状态只反映当前版本的内容边界；已锁定章节不会被提前跳过。</p>
+        <div id="chapter-catalog-list" class="chapter-catalog-list"></div>
       </div>
     </section>
 
