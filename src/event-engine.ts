@@ -20,7 +20,10 @@ export function eligibleEvents<TContext extends EventContext, TResult>(
   const resolved = new Set(resolvedIds);
   return events
     .filter((event) => !resolved.has(event.id) && event.when(context))
-    .sort((left, right) => right.priority - left.priority || left.id.localeCompare(right.id));
+    .sort((left, right) => {
+      if (right.priority !== left.priority) return right.priority - left.priority;
+      return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+    });
 }
 
 export function resolveNextEvent<TContext extends EventContext, TResult>(
