@@ -762,6 +762,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .message-budget { margin: 20px 0 14px; padding: 18px; border: 1px solid var(--line); background: rgba(9,22,36,.82); }
 .result-letter-card h3 { margin: 6px 0 8px; color: var(--amber-soft); font-size: var(--ui-lead-size); font-weight: 500; }
 .result-letter-card p { margin: 7px 0 0; color: #b9c8d1; font-size: var(--ui-body-size); line-height: 1.65; }
+.chapter-two-narrative { margin: 12px 0 0; padding-left: 12px; border-left: 2px solid var(--blue); color: #9eb2bf; font-size: var(--ui-small-size); line-height: 1.65; }
 .message-budget { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; color: #9fb0bc; font-size: var(--ui-small-size); }
 .message-budget strong { color: var(--amber-soft); font-size: var(--ui-body-size); }
 .bus-route-track { margin: 22px 0 14px; overflow-x: auto; }

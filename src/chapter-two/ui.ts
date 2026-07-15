@@ -11,6 +11,7 @@ import {
   BUS_STOPS,
   RESULT_FRAMINGS
 } from "./model";
+import { busPrelude, messagePrelude, resultReaction } from "./context";
 
 const $ = <T extends Element = HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector);
@@ -53,6 +54,7 @@ export function createChapterTwoUI(callbacks: ChapterTwoUICallbacks): ChapterTwo
       "#chapter-two-family-pressure",
       `家里的介入压力：${mode === "story" ? Math.round(state.familyPressure) : state.familyPressure >= 60 ? "偏高" : state.familyPressure >= 35 ? "中等" : "偏低"}`
     );
+    setText("#chapter-two-family-reaction", resultReaction(state));
     const actions = $("#chapter-two-result-actions");
     actions.replaceChildren();
     RESULT_FRAMINGS.forEach((framing) => {
@@ -71,6 +73,7 @@ export function createChapterTwoUI(callbacks: ChapterTwoUICallbacks): ChapterTwo
   }
 
   function renderMessage(_state: ChapterTwoState): void {
+    setText("#chapter-two-message-prelude", messagePrelude(_state));
     setText("#message-budget-count", "最多 18 字");
     const actions = $("#chapter-two-message-actions");
     actions.replaceChildren();
@@ -90,6 +93,7 @@ export function createChapterTwoUI(callbacks: ChapterTwoUICallbacks): ChapterTwo
   }
 
   function renderBus(state: ChapterTwoState): void {
+    setText("#chapter-two-bus-prelude", busPrelude(state));
     const stops = $("#bus-stop-list");
     stops.replaceChildren();
     BUS_STOPS.forEach((stop, index) => {
