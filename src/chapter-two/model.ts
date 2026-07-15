@@ -128,6 +128,6 @@ export function busAction(id: BusActionId) {
 }
 
 export function initialFamilyPressure(stats: GameStats, resultBand: NonNullable<MockExamState["band"]>): number {
-  const bandPressure = resultBand === "失常" ? 8 : resultBand === "波动" ? 5 : resultBand === "稳定" ? 3 : 1;
-  return Math.max(0, Math.min(100, bandPressure + Math.round(stats.stress * 0.25)));
+  const bandPressure = resultBand === "失常" ? 35 : resultBand === "波动" ? 25 : resultBand === "稳定" ? 15 : 8;
+  return Math.max(0, Math.min(100, bandPressure + Math.round(stats.stress * 0.4)));
 }

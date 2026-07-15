@@ -32,7 +32,8 @@ function state() {
 describe("chapter two narrative context", () => {
   it("reflects score band and family pressure in the result reaction", () => {
     const chapterTwo = state();
-    expect(resultReaction(chapterTwo)).toContain("下滑");
+    expect(resultReaction(chapterTwo)).toContain("母亲");
+    expect(chapterTwo.familyPressure).toBeGreaterThanOrEqual(55);
   });
 
   it("carries the chosen framing into the message and bus prelude", () => {
