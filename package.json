@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "check:content": "vitest run tests/content-integrity.test.ts tests/story.test.ts",
     "test:watch": "vitest"
   },
   "devDependencies": {
