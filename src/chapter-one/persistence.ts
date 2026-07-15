@@ -9,9 +9,11 @@ import type {
   ChapterOneWeek,
   ChapterOneWeekPlan,
   LongTermProgress,
-  ScheduledAssignment
+  ScheduledAssignment,
+  WeekExecutionState
 } from "../types";
 import { activityById, createWeekSlots } from "./model";
+import { isKnownWeekEvent, isKnownWeekEventChoice } from "./week-events";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -34,6 +36,7 @@ function texts(value: unknown, limit = 100): string[] {
 const weeks = new Set<ChapterOneWeek>([1, 2, 3, 4]);
 const phases = new Set<ChapterOnePhase>([
   "planning",
+  "week-events",
   "seat-game",
   "sentence-game",
   "review",
@@ -41,6 +44,25 @@ const phases = new Set<ChapterOnePhase>([
   "complete"
 ]);
 const statuses = new Set<AssignmentStatus>(["planned", "done", "missed", "rescheduled"]);
+
+function sanitizeWeekExecution(value: unknown, currentWeek: ChapterOneWeek): WeekExecutionState | null {
+  if (!isRecord(value) || number(value.week) !== currentWeek) return null;
+  const eventIds = texts(value.eventIds, 3).filter(isKnownWeekEvent);
+  const cursor = Math.max(0, Math.min(eventIds.length, Math.trunc(number(value.cursor))));
+  const rawChoices = texts(value.choiceIds, 3);
+  if (eventIds.length !== 3 || rawChoices.length !== cursor) return null;
+  const choiceIds = rawChoices.filter((choiceId, index) =>
+    isKnownWeekEventChoice(eventIds[index] ?? "", choiceId)
+  );
+  if (choiceIds.length !== rawChoices.length) return null;
+  return {
+    week: currentWeek,
+    eventIds,
+    cursor,
+    choiceIds,
+    log: texts(value.log, 3).slice(0, cursor)
+  };
+}
 
 export function defaultLongTermProgress(): LongTermProgress {
   return {
@@ -219,6 +241,12 @@ function isRecoverableChapterOneState(state: ChapterOneState): boolean {
   if (state.phase === "sentence-game" && state.currentWeek !== 3) return false;
   if (state.phase === "exam" && state.currentWeek !== 4) return false;
   if (state.phase === "complete" && state.currentWeek !== 4) return false;
+  if (state.phase === "week-events") {
+    if (!state.weekExecution || state.weekExecution.cursor >= state.weekExecution.eventIds.length) return false;
+  } else if (state.weekExecution && state.weekExecution.cursor < state.weekExecution.eventIds.length) {
+    return false;
+  }
+  if (state.phase === "planning" && state.weekExecution) return false;
 
   const seatPending = state.seatGame.outcome === "pending";
   if (state.seatGame.resolved === seatPending) return false;
@@ -299,6 +327,7 @@ export function sanitizeChapterOneState(value: unknown): ChapterOneState | null 
   const pageAction = sentence ? text(sentence.pageAction) : "";
   const plans = sanitizePlans(value.plans, obligations);
   const carrierSeatId = text(seat.carrierSeatId, "r6c2");
+  const weekExecution = sanitizeWeekExecution(value.weekExecution, currentWeek);
 
   const state: ChapterOneState = {
     schemaVersion: 1,
@@ -321,6 +350,7 @@ export function sanitizeChapterOneState(value: unknown): ChapterOneState | null 
           .filter((result) => weeks.has(result.week))
           .slice(0, 4)
       : [],
+    weekExecution,
     relationships: {
       liangFavor: number(relationships.liangFavor),
       guoSuspicion: number(relationships.guoSuspicion),

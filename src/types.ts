@@ -28,6 +28,7 @@ export type ChapterOneWeek = 1 | 2 | 3 | 4;
 export type ChapterOnePeriod = "break" | "evening";
 export type ChapterOnePhase =
   | "planning"
+  | "week-events"
   | "seat-game"
   | "sentence-game"
   | "review"
@@ -168,6 +169,7 @@ export type GameLocation =
   | { kind: "story"; graphId: "prologue"; nodeId: string }
   | { kind: "opening-profile" }
   | { kind: "chapter-one-planner"; week: ChapterOneWeek }
+  | { kind: "chapter-one-events"; week: ChapterOneWeek }
   | { kind: "chapter-one-seat" }
   | { kind: "chapter-one-sentence" }
   | { kind: "chapter-one-review"; week: ChapterOneWeek }
@@ -230,6 +232,14 @@ export interface ChapterOneWeekResult {
   zhouAction: string;
 }
 
+export interface WeekExecutionState {
+  week: ChapterOneWeek;
+  eventIds: string[];
+  cursor: number;
+  choiceIds: string[];
+  log: string[];
+}
+
 export type SeatActionId = "wait" | "pass-liang" | "pass-zhou" | "hide" | "take-back";
 
 export interface SeatGameState {
@@ -264,6 +274,7 @@ export interface ChapterOneState {
   plans: ChapterOneWeekPlan[];
   obligations: CalendarObligation[];
   results: ChapterOneWeekResult[];
+  weekExecution: WeekExecutionState | null;
   relationships: ChapterOneRelationships;
   resolvedEventIds: string[];
   seatGame: SeatGameState;

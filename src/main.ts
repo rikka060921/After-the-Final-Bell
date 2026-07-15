@@ -31,6 +31,7 @@ import {
 import { archiveSeatGame, playSeatAction } from "./chapter-one/seat-game";
 import { submitSentenceAssembly } from "./chapter-one/sentence";
 import { createChapterOneUI, type ChapterOneUI } from "./chapter-one/ui";
+import { resolveWeekEventChoice } from "./chapter-one/week-events";
 import { initializeChapterTwo } from "./chapter-two/opening";
 import { playBusAction } from "./chapter-two/bus";
 import { sendAsyncMessage } from "./chapter-two/message";
@@ -105,6 +106,7 @@ const dom = {
   ending: $("#ending-screen"),
   profile: $("#opening-profile-screen"),
   planner: $("#chapter-one-planner-screen"),
+  weekEvents: $("#week-events-screen"),
   seatGame: $("#seat-game-screen"),
   sentenceGame: $("#sentence-game-screen"),
   weekReview: $("#week-review-screen"),
@@ -676,6 +678,7 @@ function showEnding() {
 
 function chapterLocationForState(state: ChapterOneState): GameLocation {
   if (state.phase === "planning") return { kind: "chapter-one-planner", week: state.currentWeek };
+  if (state.phase === "week-events") return { kind: "chapter-one-events", week: state.currentWeek };
   if (state.phase === "seat-game") return { kind: "chapter-one-seat" };
   if (state.phase === "sentence-game") return { kind: "chapter-one-sentence" };
   if (state.phase === "review") return { kind: "chapter-one-review", week: state.currentWeek };
@@ -706,6 +709,9 @@ function showChapterOneState(save = true) {
   if (chapterOne.phase === "planning") {
     chapterOneUI.renderPlanner(chapterOne, openingProfile, gameMode, longTermProgress);
     revealScreen(dom.planner, "#planner-title");
+  } else if (chapterOne.phase === "week-events") {
+    chapterOneUI.renderWeekEvents(chapterOne, longTermProgress, gameMode);
+    revealScreen(dom.weekEvents, "#week-event-title");
   } else if (chapterOne.phase === "seat-game") {
     chapterOneUI.renderSeatGame(chapterOne);
     revealScreen(dom.seatGame, "#seat-game-title");
@@ -808,6 +814,21 @@ function handleChapterCommit() {
     showChapterOneState();
   } catch (error) {
     $("#schedule-status").textContent = error instanceof Error ? error.message : "无法开始这一周。";
+  }
+}
+
+function handleWeekEventChoice(choiceId: string) {
+  if (!chapterOne) return;
+  try {
+    const resolved = resolveWeekEventChoice(chapterOne, longTermProgress, stats, choiceId);
+    chapterOne = resolved.chapterOne;
+    longTermProgress = resolved.progress;
+    stats = resolved.stats;
+    updateStatsUI();
+    tone(560, .08, .018);
+    showChapterOneState();
+  } catch (error) {
+    $("#week-event-status").textContent = error instanceof Error ? error.message : "当前行动无法执行。";
   }
 }
 
@@ -1006,6 +1027,7 @@ function locationLabel(location: GameLocation): string {
   if (location.kind === "story") return `序章 · ${story[location.nodeId]?.step ?? "--"}`;
   if (location.kind === "opening-profile") return "第一章 · 开局档案";
   if (location.kind === "chapter-one-planner") return `第一章 · 第${location.week}周排程`;
+  if (location.kind === "chapter-one-events") return `第一章 · 第${location.week}周执行`;
   if (location.kind === "chapter-one-seat") return "第一章 · 座位路线";
   if (location.kind === "chapter-one-sentence") return "第一章 · 句子拼装";
   if (location.kind === "chapter-one-review") return `第一章 · 第${location.week}周复盘`;
@@ -1185,6 +1207,7 @@ chapterOneUI = createChapterOneUI({
   onAssign: handleChapterAssignment,
   onResetWeek: handleChapterReset,
   onCommitWeek: handleChapterCommit,
+  onWeekEventChoice: handleWeekEventChoice,
   onSave: saveChapterOneNow,
   onReturnTitle: showTitle,
   onSeatAction: handleSeatAction,

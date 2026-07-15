@@ -15,6 +15,7 @@ import {
   canCommitWeek,
   currentWeekLabel,
   getWeekPlan,
+  PLAYER_ACTION_LIMIT,
   selectedPlayerActivities
 } from "./schedule";
 import { getSeatActions, seatOutcomeText } from "./seat-game";
@@ -25,6 +26,8 @@ import {
   validateSentenceSelection,
   type SentencePosition
 } from "./sentence";
+import { evaluateWeekGoals } from "./week-goals";
+import { currentWeekEvent } from "./week-events";
 
 const $ = <T extends Element = HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector);
@@ -36,6 +39,7 @@ export interface ChapterOneUICallbacks {
   onAssign(slotId: string, activityId: ChapterOneActivityId): void;
   onResetWeek(): void;
   onCommitWeek(): void;
+  onWeekEventChoice(choiceId: string): void;
   onSave(): void;
   onReturnTitle(): void;
   onSeatAction(actionId: SeatActionId): void;
@@ -50,9 +54,10 @@ export interface ChapterOneUI {
   renderPlanner(
     state: ChapterOneState,
     profile: OpeningProfile,
-    mode: GameMode,
+    _mode: GameMode,
     progress: LongTermProgress
   ): void;
+  renderWeekEvents(state: ChapterOneState, progress: LongTermProgress, mode: GameMode): void;
   renderSeatGame(state: ChapterOneState): void;
   renderSentenceGame(progress: LongTermProgress, mode: GameMode): void;
   renderReview(state: ChapterOneState, progress: LongTermProgress): void;
@@ -162,7 +167,7 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
   function renderPlanner(
     state: ChapterOneState,
     profile: OpeningProfile,
-    _mode: GameMode,
+    mode: GameMode,
     progress: LongTermProgress
   ): void {
     const definition = getWeekDefinition(state.currentWeek);
@@ -202,6 +207,22 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
     const promiseTitle = document.createElement("strong");
     promiseTitle.textContent = "承诺占用";
     promise.append(promiseTitle, document.createTextNode(promiseSummary(state, profile)));
+
+    const goals = $("#planner-goal-list");
+    goals.replaceChildren(...evaluateWeekGoals(state).map((goal) => {
+      const item = document.createElement("li");
+      item.dataset.complete = String(goal.complete);
+      const marker = document.createElement("span");
+      marker.textContent = goal.complete ? "完成" : "待处理";
+      const copy = document.createElement("div");
+      const label = document.createElement("strong");
+      label.textContent = goal.label;
+      const detail = document.createElement("small");
+      detail.textContent = goal.detail;
+      copy.append(label, detail);
+      item.append(marker, copy);
+      return item;
+    }));
 
     setText("#planner-echo-title", context.echoTitle);
     const echoList = $("#planner-echo-list");
@@ -277,11 +298,61 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
 
     const activeCount = Object.values(plan.assignments).filter((item) => item.activityId !== "open").length;
     const blanks = 14 - activeCount;
-    setText("#allocation-summary", `已安排 ${activeCount} 格 · 留白 ${blanks} 格 · 自主选择 ${selectedPlayerActivities(plan)} 格`);
+    const playerActions = selectedPlayerActivities(plan);
+    const fixed = activeCount - playerActions;
+    setText("#allocation-summary", `主动 ${playerActions}/${PLAYER_ACTION_LIMIT} · 固定 ${fixed} · 留白 ${blanks}`);
     const permission = canCommitWeek(state);
     const commit = $<HTMLButtonElement>("#schedule-commit-btn");
     commit.disabled = !permission.ok;
     setText("#schedule-guidance", permission.reason);
+  }
+
+  function renderWeekEvents(
+    state: ChapterOneState,
+    progress: LongTermProgress,
+    mode: GameMode
+  ): void {
+    const event = currentWeekEvent(state, progress);
+    const execution = state.weekExecution;
+    if (!event || !execution) return;
+    setText("#week-event-label", `第一章 · 第${state.currentWeek}周执行`);
+    setText("#week-event-title", event.title);
+    setText("#week-event-scene", event.scene);
+    setText("#week-event-prompt", event.prompt);
+    const step = execution.cursor + 1;
+    const total = execution.eventIds.length;
+    const progressBar = $<HTMLElement>("#week-event-progress");
+    progressBar.setAttribute("aria-valuenow", String(step));
+    progressBar.setAttribute("aria-valuemax", String(total));
+    progressBar.setAttribute("aria-valuetext", `第 ${step} 个执行事件，共 ${total} 个`);
+    $<HTMLElement>("#week-event-progress-fill").style.width = `${(step / total) * 100}%`;
+
+    const actions = $("#week-event-actions");
+    actions.replaceChildren(...event.choices.map((choice) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "week-event-choice";
+      const title = document.createElement("strong");
+      title.textContent = choice.label;
+      const description = document.createElement("small");
+      description.textContent = choice.description;
+      button.append(title, description);
+      if (mode === "story") {
+        const hint = document.createElement("em");
+        hint.textContent = choice.hint;
+        button.append(hint);
+      }
+      button.addEventListener("click", () => callbacks.onWeekEventChoice(choice.id));
+      return button;
+    }));
+
+    const log = $("#week-event-log");
+    log.replaceChildren(...execution.log.map((line) => {
+      const item = document.createElement("li");
+      item.textContent = line;
+      return item;
+    }));
+    setText("#week-event-status", `本周执行事件 ${step}/${total}`);
   }
 
   function renderSeatGame(state: ChapterOneState): void {
@@ -514,6 +585,7 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
 
   return {
     renderPlanner,
+    renderWeekEvents,
     renderSeatGame,
     renderSentenceGame,
     renderReview,

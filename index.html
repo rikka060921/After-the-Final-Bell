@@ -283,6 +283,10 @@
             <span class="paper-label">THIS WEEK</span>
             <h3 id="pressure-title">本周压力</h3>
             <ul id="pressure-list"></ul>
+            <section class="planner-goals" aria-labelledby="planner-goals-title">
+              <h4 id="planner-goals-title">本周目标</h4>
+              <ul id="planner-goal-list"></ul>
+            </section>
             <div id="planner-promise" class="planner-promise"></div>
             <section id="planner-echo" class="planner-echo" aria-labelledby="planner-echo-title">
               <h4 id="planner-echo-title">已经发生</h4>
@@ -292,8 +296,8 @@
           <section class="schedule-board" aria-labelledby="slots-title">
             <header class="schedule-board-header">
               <div>
-                <span class="paper-label">14 FREE SLOTS</span>
-                <h3 id="slots-title">十四格自由时间</h3>
+                <span class="paper-label">6 DECISIONS · 14 WINDOWS</span>
+                <h3 id="slots-title">六次主动安排</h3>
               </div>
               <output id="allocation-summary"></output>
             </header>
@@ -302,8 +306,8 @@
         </div>
         <footer class="interaction-actions planner-actions">
           <button id="schedule-reset-btn" class="ghost-btn">恢复周初</button>
-          <p id="schedule-guidance">至少主动安排 3 格，其余可以留白。</p>
-          <button id="schedule-commit-btn" class="primary-btn">开始这一周</button>
+          <p id="schedule-guidance">主动安排六格，其他时间保留为固定任务、承诺或留白。</p>
+          <button id="schedule-commit-btn" class="primary-btn">执行这一周</button>
         </footer>
         <p id="schedule-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
       </div>
@@ -326,6 +330,26 @@
         </div>
       </form>
     </dialog>
+
+    <section id="week-events-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="week-event-title">
+      <div class="interaction-shell week-event-shell">
+        <header class="interaction-header">
+          <span id="week-event-label" class="paper-label">第一章 · 本周执行</span>
+          <h2 id="week-event-title" tabindex="-1">计划遇见现实</h2>
+          <p id="week-event-scene"></p>
+        </header>
+        <div id="week-event-progress" class="week-event-progress" role="progressbar" aria-label="本周执行事件" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" aria-valuetext="第 1 个执行事件，共 3 个">
+          <span id="week-event-progress-fill"></span>
+        </div>
+        <p id="week-event-prompt" class="week-event-prompt"></p>
+        <div id="week-event-actions" class="week-event-actions" role="group" aria-label="当前事件可执行行动"></div>
+        <section class="week-event-history" aria-labelledby="week-event-history-title">
+          <h3 id="week-event-history-title">本周已经发生</h3>
+          <ol id="week-event-log"></ol>
+        </section>
+        <p id="week-event-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </section>
 
     <section id="seat-game-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="seat-game-title">
       <div class="interaction-shell">

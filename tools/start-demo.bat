@@ -11,6 +11,5 @@ if errorlevel 1 (
   exit /b 1
 )
 
-start "" "http://127.0.0.1:8765"
-node tools\serve.mjs
+node tools\serve.mjs --open
 pause

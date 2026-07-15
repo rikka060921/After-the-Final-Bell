@@ -4,13 +4,16 @@ import { defaultNotebookState, initialStats } from "../src/config";
 import { createOpeningProfile } from "../src/opening-profile";
 import { createWeekSlots } from "../src/chapter-one/model";
 import { initializeChapterOne } from "../src/chapter-one/opening";
+import { sanitizeChapterOneState } from "../src/chapter-one/persistence";
 import {
   advanceAfterReview,
   assignActivity,
+  canCommitWeek,
   getWeekPlan,
   resetCurrentWeek,
   resolveCurrentWeek
 } from "../src/chapter-one/schedule";
+import { currentWeekEvent, resolveWeekEventChoice } from "../src/chapter-one/week-events";
 import { archiveSeatGame, playSeatAction } from "../src/chapter-one/seat-game";
 import { submitSentenceAssembly } from "../src/chapter-one/sentence";
 import { EXAM_STAGES, playExamAction, thirdHandwritingReveal } from "../src/chapter-one/exam";
@@ -41,12 +44,33 @@ function opening(promiseId = "two-independent-goals", mode: GameMode = "story") 
   });
 }
 
-function fillThreeOpenSlots(state: ReturnType<typeof initializeChapterOne>["chapterOne"]) {
+function fillSixOpenSlots(state: ReturnType<typeof initializeChapterOne>["chapterOne"]) {
   let next = state;
   const plan = getWeekPlan(next);
-  const available = Object.values(plan.assignments).filter((assignment) => !assignment.locked).slice(0, 3);
+  const available = Object.values(plan.assignments).filter((assignment) => !assignment.locked).slice(0, 6);
   for (const assignment of available) next = assignActivity(next, assignment.slotId, "rest");
   return next;
+}
+
+function finishWeekEvents(
+  state: ReturnType<typeof initializeChapterOne>["chapterOne"],
+  progress: ReturnType<typeof initializeChapterOne>["progress"],
+  stats = initialStats()
+) {
+  let chapterOne = state;
+  let nextProgress = progress;
+  let nextStats = stats;
+  while (chapterOne.phase === "week-events") {
+    const event = currentWeekEvent(chapterOne, nextProgress);
+    if (!event) throw new Error("Missing current week event");
+    ({ chapterOne, progress: nextProgress, stats: nextStats } = resolveWeekEventChoice(
+      chapterOne,
+      nextProgress,
+      nextStats,
+      event.choices[0]!.id
+    ));
+  }
+  return { chapterOne, progress: nextProgress, stats: nextStats };
 }
 
 describe("chapter one schedule", () => {
@@ -79,26 +103,76 @@ describe("chapter one schedule", () => {
     expect(() => assignActivity(chapterOne, locked.slotId, "rest")).toThrow(/Promise obligations/);
   });
 
+  it("requires exactly six player decisions and rejects a seventh", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const five = Object.values(getWeekPlan(initialized.chapterOne).assignments).slice(0, 5);
+    let state = initialized.chapterOne;
+    five.forEach((assignment) => { state = assignActivity(state, assignment.slotId, "rest"); });
+    expect(canCommitWeek(state)).toMatchObject({ ok: false });
+    const sixth = Object.values(getWeekPlan(state).assignments).find((assignment) => assignment.activityId === "open")!;
+    state = assignActivity(state, sixth.slotId, "own-goal");
+    expect(canCommitWeek(state)).toMatchObject({ ok: true });
+    const seventh = Object.values(getWeekPlan(state).assignments).find((assignment) => assignment.activityId === "open")!;
+    expect(() => assignActivity(state, seventh.slotId, "rest")).toThrow(/6 次主动安排/);
+  });
+
+  it("plays three deterministic execution events before the weekly core interaction", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const resolved = resolveCurrentWeek(
+      fillSixOpenSlots(initialized.chapterOne),
+      initialized.progress,
+      initialStats()
+    );
+    expect(resolved.chapterOne.phase).toBe("week-events");
+    expect(resolved.chapterOne.weekExecution?.eventIds).toHaveLength(3);
+    const finished = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats);
+    expect(finished.chapterOne.phase).toBe("seat-game");
+    expect(finished.chapterOne.weekExecution?.choiceIds).toHaveLength(3);
+    expect(finished.progress.facts.some((fact) => fact.startsWith("week-choice:"))).toBe(true);
+  });
+
+  it("restores an in-progress weekly execution from save data", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const resolved = resolveCurrentWeek(
+      fillSixOpenSlots(initialized.chapterOne),
+      initialized.progress,
+      initialStats()
+    );
+    const event = currentWeekEvent(resolved.chapterOne, resolved.progress)!;
+    const advanced = resolveWeekEventChoice(
+      resolved.chapterOne,
+      resolved.progress,
+      resolved.stats,
+      event.choices[1]!.id
+    );
+    const restored = sanitizeChapterOneState(structuredClone(advanced.chapterOne));
+    expect(restored?.phase).toBe("week-events");
+    expect(restored?.weekExecution).toMatchObject({ cursor: 1 });
+    expect(restored?.weekExecution?.choiceIds).toEqual([event.choices[1]!.id]);
+  });
+
   it("renegotiates excessive daily contact through Zhou Tang's deterministic action", () => {
     const initialized = initializeChapterOne(opening("daily-total-contact"));
-    let state = fillThreeOpenSlots(initialized.chapterOne);
+    let state = fillSixOpenSlots(initialized.chapterOne);
     let progress = initialized.progress;
     let stats = initialStats();
     let resolved = resolveCurrentWeek(state, progress, stats);
-    state = playSeatAction(resolved.chapterOne, "wait");
+    ({ chapterOne: state, progress, stats } = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats));
+    state = playSeatAction(state, "wait");
     state = playSeatAction(state, "pass-liang");
     state = playSeatAction(state, "wait");
     state = playSeatAction(state, "pass-zhou");
-    ({ chapterOne: state, progress } = archiveSeatGame(state, resolved.progress));
+    ({ chapterOne: state, progress } = archiveSeatGame(state, progress));
     ({ chapterOne: state, progress } = advanceAfterReview(state, progress));
-    state = fillThreeOpenSlots(state);
-    resolved = resolveCurrentWeek(state, progress, resolved.stats);
+    state = fillSixOpenSlots(state);
+    resolved = resolveCurrentWeek(state, progress, stats);
+    ({ chapterOne: state, progress, stats } = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats));
 
-    expect(resolved.progress.facts).toContain("daily-contact-renegotiated");
-    expect(resolved.chapterOne.obligations.filter((item) => item.status === "renegotiated")).toHaveLength(6);
-    expect(resolved.chapterOne.results.find((result) => result.week === 2)?.zhouAction).toContain("主动改变计划");
+    expect(progress.facts).toContain("daily-contact-renegotiated");
+    expect(state.obligations.filter((item) => item.status === "renegotiated")).toHaveLength(6);
+    expect(state.results.find((result) => result.week === 2)?.zhouAction).toContain("主动改变计划");
 
-    const advanced = advanceAfterReview(resolved.chapterOne, resolved.progress);
+    const advanced = advanceAfterReview(state, progress);
     const beforeReset = Object.values(getWeekPlan(advanced.chapterOne).assignments).filter(
       (assignment) => assignment.source === "zhou-tang" && assignment.status === "rescheduled"
     );
@@ -115,16 +189,20 @@ describe("chapter one schedule", () => {
   it("applies low-energy speed-training costs in chronological slot order", () => {
     const initialized = initializeChapterOne(opening("blank-page"));
     let state = initialized.chapterOne;
-    for (const slot of createWeekSlots(1)) {
+    for (const slot of createWeekSlots(1).slice(0, 6)) {
       state = assignActivity(state, slot.id, "math-speed");
     }
-    const resolved = resolveCurrentWeek(state, initialized.progress, initialStats());
+    const resolved = resolveCurrentWeek(
+      state,
+      initialized.progress,
+      { ...initialStats(), energy: 30 }
+    );
     expect(resolved.progress.academic.falseMastery).toBeGreaterThan(0);
     expect(resolved.progress.academic.sleepDebt).toBeGreaterThan(
       initialized.progress.academic.sleepDebt
     );
     expect(resolved.progress.academic.speed).toBeLessThan(
-      initialized.progress.academic.speed + 14 * 4
+      initialized.progress.academic.speed + 6 * 4
     );
   });
 
@@ -135,7 +213,7 @@ describe("chapter one schedule", () => {
       let state = initialized.chapterOne;
       state = assignActivity(state, slots[0]!.id, first);
       state = assignActivity(state, slots[1]!.id, second);
-      state = assignActivity(state, slots[2]!.id, "own-goal");
+      for (const slot of slots.slice(2, 6)) state = assignActivity(state, slot.id, "own-goal");
       return resolveCurrentWeek(
         state,
         initialized.progress,
@@ -179,16 +257,18 @@ describe("chapter one schedule", () => {
     "writes Zhou's optional mutual-review invitation into week three for %s",
     (promiseId) => {
       const initialized = initializeChapterOne(opening(promiseId));
-      let state = fillThreeOpenSlots(initialized.chapterOne);
+      let state = fillSixOpenSlots(initialized.chapterOne);
       let progress = initialized.progress;
       let stats = initialStats();
       let resolved = resolveCurrentWeek(state, progress, stats);
-      state = playSeatAction(resolved.chapterOne, "take-back");
-      ({ chapterOne: state, progress } = archiveSeatGame(state, resolved.progress));
+      ({ chapterOne: state, progress, stats } = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats));
+      state = playSeatAction(state, "take-back");
+      ({ chapterOne: state, progress } = archiveSeatGame(state, progress));
       ({ chapterOne: state, progress } = advanceAfterReview(state, progress));
-      state = fillThreeOpenSlots(state);
-      resolved = resolveCurrentWeek(state, progress, resolved.stats);
-      ({ chapterOne: state, progress } = advanceAfterReview(resolved.chapterOne, resolved.progress));
+      state = fillSixOpenSlots(state);
+      resolved = resolveCurrentWeek(state, progress, stats);
+      ({ chapterOne: state, progress, stats } = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats));
+      ({ chapterOne: state, progress } = advanceAfterReview(state, progress));
 
       expect(state.currentWeek).toBe(3);
       expect(getWeekPlan(state).assignments["w3-d2-evening"]).toMatchObject({
@@ -208,8 +288,9 @@ describe("chapter one schedule", () => {
       let stats = initialStats();
 
       for (const week of [1, 2, 3, 4] as const) {
-        state = fillThreeOpenSlots(state);
+        state = fillSixOpenSlots(state);
         ({ chapterOne: state, progress, stats } = resolveCurrentWeek(state, progress, stats));
+        ({ chapterOne: state, progress, stats } = finishWeekEvents(state, progress, stats));
         if (week === 1) {
           state = playSeatAction(state, "wait");
           state = playSeatAction(state, "pass-liang");

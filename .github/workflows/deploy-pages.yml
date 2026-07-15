@@ -37,11 +37,12 @@ jobs:
       - name: Upload downloadable demo artifact
         uses: actions/upload-artifact@v4
         with:
-          name: after-the-final-bell-demo-0.6.0
+          name: after-the-final-bell-demo-0.7.0
           path: |
             dist
             tools/serve.mjs
             tools/start-demo.bat
+            START_DEMO.bat
             README.md
             docs/试玩版发布说明.md
           if-no-files-found: error

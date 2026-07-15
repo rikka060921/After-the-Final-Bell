@@ -16,8 +16,10 @@ import {
   selectZhouWeekTwoAction,
   type ZhouWeekTwoActionId
 } from "./character-actions";
+import { createWeekExecution } from "./week-events";
 
 const WEEKS: ChapterOneWeek[] = [1, 2, 3, 4];
+export const PLAYER_ACTION_LIMIT = 6;
 
 function cloneAssignment(assignment: ScheduledAssignment): ScheduledAssignment {
   return { ...assignment };
@@ -44,6 +46,14 @@ export function cloneChapterOneState(state: ChapterOneState): ChapterOneState {
       echoes: [...result.echoes],
       nextWeek: [...result.nextWeek]
     })),
+    weekExecution: state.weekExecution
+      ? {
+          ...state.weekExecution,
+          eventIds: [...state.weekExecution.eventIds],
+          choiceIds: [...state.weekExecution.choiceIds],
+          log: [...state.weekExecution.log]
+        }
+      : null,
     relationships: { ...state.relationships },
     resolvedEventIds: [...state.resolvedEventIds],
     seatGame: { ...state.seatGame, log: [...state.seatGame.log] },
@@ -83,10 +93,13 @@ export function canCommitWeek(state: ChapterOneState): { ok: boolean; reason: st
   if (state.phase !== "planning") return { ok: false, reason: "当前不在排程阶段。" };
   if (plan.committed) return { ok: false, reason: "这一周已经写进错题本。" };
   const selected = selectedPlayerActivities(plan);
-  if (selected < 3) {
-    return { ok: false, reason: `还需主动安排 ${3 - selected} 格；其余时间可以继续留白。` };
+  if (selected < PLAYER_ACTION_LIMIT) {
+    return { ok: false, reason: `还需主动安排 ${PLAYER_ACTION_LIMIT - selected} 格；承诺占用不计入六次选择。` };
   }
-  return { ok: true, reason: "可以开始这一周。" };
+  if (selected > PLAYER_ACTION_LIMIT) {
+    return { ok: false, reason: `本周只能主动安排 ${PLAYER_ACTION_LIMIT} 格；请把 ${selected - PLAYER_ACTION_LIMIT} 格改回留白。` };
+  }
+  return { ok: true, reason: "六次主动安排已完成，可以执行这一周。" };
 }
 
 export function assignActivity(
@@ -109,6 +122,12 @@ export function assignActivity(
     throw new Error(`${activity.label} cannot be assigned to ${slot.periodLabel}`);
   }
   if (activity.category === "承诺") throw new Error("Promise activities are assigned by promise rules");
+  const selected = selectedPlayerActivities(plan);
+  const addsPlayerAction = activityId !== "open" &&
+    (current.source !== "player" || current.activityId === "open");
+  if (addsPlayerAction && selected >= PLAYER_ACTION_LIMIT) {
+    throw new Error(`本周只有 ${PLAYER_ACTION_LIMIT} 次主动安排；请先把另一格改回留白。`);
+  }
   plan.assignments[slotId] = {
     slotId,
     activityId,
@@ -387,7 +406,6 @@ export function resolveCurrentWeek(
     facts.push("page17-binding-loose", "seat-reshuffle-from-monthly-test");
     if ((counts.get("help-liang") ?? 0) > 0) facts.push("liang-favor-earned");
     if ((counts.get("observe-seat") ?? 0) > 0) facts.push("seat-route-observed");
-    next.phase = "seat-game";
   } else if (next.currentWeek === 2) {
     const hasMath = (counts.get("math-mastery") ?? 0) > 0 || (counts.get("mutual-review") ?? 0) > 0;
     const hasEnglish = (counts.get("english-review") ?? 0) > 0 || (counts.get("mutual-review") ?? 0) > 0;
@@ -405,18 +423,17 @@ export function resolveCurrentWeek(
       next.resolvedEventIds = [...new Set([...next.resolvedEventIds, zhouActionId])];
     }
     if (changedContacts) facts.push("daily-contact-renegotiated");
-    next.phase = "review";
   } else if (next.currentWeek === 3) {
     facts.push("zhou-protected-unnamed-person", "complete-solution-left", "zhou-missed-corridor-meeting");
-    next.phase = "sentence-game";
   } else {
     facts.push("first-mock-schedule-complete");
-    next.phase = "exam";
   }
 
   nextProgress = withFacts(nextProgress, facts);
   const result = resultForWeek(next.currentWeek, counts, next, changedContacts, zhouActionId);
   next.results = [...next.results.filter((candidate) => candidate.week !== next.currentWeek), result];
+  next.phase = "week-events";
+  next.weekExecution = createWeekExecution(next);
   return { chapterOne: next, progress: nextProgress, stats: nextStats };
 }
 
@@ -430,6 +447,7 @@ export function advanceAfterReview(
   if (next.currentWeek < 4) {
     next.currentWeek = (next.currentWeek + 1) as ChapterOneWeek;
     next.phase = "planning";
+    next.weekExecution = null;
   } else {
     if (!next.exam.resolved) throw new Error("The mock exam must be resolved before chapter completion");
     next.phase = "complete";

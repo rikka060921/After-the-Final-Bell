@@ -622,6 +622,17 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .week-pressure ul { display: grid; gap: 10px; margin: 0; padding-left: 18px; color: #b7c6cf; font-size: var(--ui-small-size); line-height: 1.55; }
 .planner-promise { margin-top: 18px; padding: 12px; border-left: 2px solid var(--amber); background: rgba(239,169,92,.055); color: #b9c8d1; font-size: var(--ui-small-size); line-height: 1.6; }
 .planner-promise strong { display: block; margin-bottom: 4px; color: var(--amber-soft); }
+.planner-goals { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.planner-goals h4 { margin: 0 0 9px; color: #d6e1e7; font-size: var(--ui-body-size); font-weight: 600; }
+.planner-goals ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.planner-goals li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; align-items: start; padding: 8px; border: 1px solid rgba(215,231,241,.1); }
+.planner-goals li > span { padding-top: 2px; color: #8c9da8; font-size: var(--ui-caption-size); }
+.planner-goals li > div { display: grid; gap: 2px; min-width: 0; }
+.planner-goals li strong { color: #c5d1d8; font-size: var(--ui-small-size); }
+.planner-goals li small { color: #778b97; font-size: var(--ui-caption-size); line-height: 1.4; }
+.planner-goals li[data-complete="true"] { border-color: rgba(127,194,161,.35); background: rgba(127,194,161,.045); }
+.planner-goals li[data-complete="true"] > span,
+.planner-goals li[data-complete="true"] strong { color: #9bc8ae; }
 .planner-echo { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .planner-echo h4 { margin: 0 0 9px; color: var(--amber-soft); font-size: var(--ui-body-size); font-weight: 600; }
 .planner-echo ul { display: grid; gap: 8px; margin: 0; padding-left: 17px; color: #a9bac5; font-size: var(--ui-small-size); line-height: 1.55; }
@@ -701,6 +712,20 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
 
 .interaction-screen { align-content: start; }
+.week-event-shell { max-width: 980px; }
+.week-event-progress { height: 4px; margin: 24px 0; overflow: hidden; background: rgba(255,255,255,.08); }
+.week-event-progress span { display: block; width: 33.333%; height: 100%; background: var(--amber); transition: width .3s ease; }
+.week-event-prompt { margin: 0 0 16px; color: #d8e2e8; font-family: "STKaiti", "KaiTi", serif; font-size: var(--ui-lead-size); line-height: 1.65; }
+.week-event-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.week-event-choice { display: grid; align-content: start; gap: 7px; min-height: 168px; padding: 16px; border: 1px solid var(--line); background: rgba(9,22,36,.82); text-align: left; cursor: pointer; }
+.week-event-choice:hover { border-color: var(--amber); background: rgba(239,169,92,.055); }
+.week-event-choice strong { color: #e0e8ec; font-size: var(--ui-body-size); line-height: 1.45; }
+.week-event-choice small { color: #95a7b2; font-size: var(--ui-small-size); line-height: 1.55; }
+.week-event-choice em { margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(215,231,241,.09); color: var(--amber-soft); font-size: var(--ui-caption-size); font-style: normal; line-height: 1.45; }
+.week-event-history { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
+.week-event-history h3 { margin: 0 0 8px; color: #aabac4; font-size: var(--ui-small-size); font-weight: 600; }
+.week-event-history ol { display: grid; gap: 7px; margin: 0; padding-left: 20px; color: #8497a3; font-size: var(--ui-small-size); line-height: 1.55; }
+.week-event-history ol:empty::before { content: "这一周还没有写下结果。"; display: list-item; color: #6f818d; }
 .seat-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .42fr); gap: 18px; margin-top: 20px; }
 .seat-layout > section { min-width: 0; }
 .seat-map-wrap { overflow-x: auto; }
@@ -875,6 +900,8 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   .chapter-catalog-entry { grid-template-columns: 1fr; }
   .chapter-catalog-entry button { width: 100%; }
   .exam-actions { grid-template-columns: 1fr; }
+  .week-event-actions { grid-template-columns: 1fr; }
+  .week-event-choice { min-height: 0; }
   .exam-action-btn { min-height: 0; }
   .message-budget, .bus-status-card { display: grid; gap: 5px; }
   .demo-recap-heading { display: grid; gap: 6px; }

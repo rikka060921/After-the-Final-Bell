@@ -3,9 +3,11 @@ import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawn } from "node:child_process";
 
 const root = normalize(fileURLToPath(new URL("../dist/", import.meta.url)));
 const port = Number(process.env.PORT || 8765);
+const url = `http://127.0.0.1:${port}`;
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -32,5 +34,11 @@ createServer(async (request, response) => {
     response.end("Not found");
   }
 }).listen(port, "127.0.0.1", () => {
-  console.log(`Production build server: http://127.0.0.1:${port}`);
+  console.log(`Production build server: ${url}`);
+  if (!process.argv.includes("--open")) return;
+  const command = process.platform === "win32" ? "cmd.exe" : process.platform === "darwin" ? "open" : "xdg-open";
+  const args = process.platform === "win32" ? ["/d", "/s", "/c", `start "" "${url}"`] : [url];
+  const browser = spawn(command, args, { detached: true, stdio: "ignore", windowsHide: true });
+  browser.on("error", () => console.log(`Open this address in a browser: ${url}`));
+  browser.unref();
 });

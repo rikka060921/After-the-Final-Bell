@@ -219,6 +219,9 @@ function sanitizeLocation(
     if (chapterOne.phase === "planning") {
       return { kind: "chapter-one-planner", week: chapterOne.currentWeek };
     }
+    if (chapterOne.phase === "week-events") {
+      return { kind: "chapter-one-events", week: chapterOne.currentWeek };
+    }
     if (chapterOne.phase === "seat-game") return { kind: "chapter-one-seat" };
     if (chapterOne.phase === "sentence-game") return { kind: "chapter-one-sentence" };
     if (chapterOne.phase === "review") {
