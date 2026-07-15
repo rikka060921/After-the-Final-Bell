@@ -40,7 +40,7 @@ export const CHAPTER_CATALOG: readonly ChapterDefinition[] = [
     title: "纸页的背面",
     summary: "返校后，第17题纸页消失，复印件留下新的边角。",
     requiresFact: "chapter-two-complete",
-    availability: "locked"
+    availability: "in-development"
   }
 ] as const;
 

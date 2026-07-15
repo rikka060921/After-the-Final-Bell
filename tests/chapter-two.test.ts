@@ -79,6 +79,8 @@ describe("chapter two domain slice", () => {
     expect(current.chapterTwo.phase).toBe("complete");
     expect(["met", "missed", "late"]).toContain(current.chapterTwo.bus.outcome);
     expect(current.progress.facts.some((fact) => fact.startsWith("chapter2-bus-outcome:"))).toBe(true);
+    expect(current.progress.facts).toContain("chapter-two-complete");
+    expect(current.progress.facts).toContain("chapter-three-hook:cropped-page-copy");
   });
 
   it("does not allow a second breakfast purchase or actions after route resolution", () => {

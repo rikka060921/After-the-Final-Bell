@@ -61,6 +61,8 @@ export function playBusAction(
     nextProgress.facts = [
       ...new Set([
         ...nextProgress.facts,
+        "chapter-two-complete",
+        "chapter-three-hook:cropped-page-copy",
         `chapter2-bus-outcome:${bus.outcome}`,
         bus.breakfast ? "chapter2-breakfast-bought" : "chapter2-breakfast-skipped"
       ])
