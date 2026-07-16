@@ -360,8 +360,19 @@
         </header>
         <div class="challenge-toolbar">
           <strong id="week-challenge-turn">第 1 / 3 轮</strong>
-          <span>三轮后按剩余压力结算</span>
+          <span>看清下一步，再决定如何接招</span>
         </div>
+        <section id="week-challenge-telegraph" class="challenge-telegraph" data-state="incoming" aria-labelledby="week-challenge-move">
+          <div class="challenge-telegraph-heading">
+            <span id="week-challenge-opponent">对方行动</span>
+            <strong id="week-challenge-move">正在判断下一步</strong>
+          </div>
+          <p id="week-challenge-telegraph-copy"></p>
+          <footer>
+            <span id="week-challenge-move-effect"></span>
+            <span id="week-challenge-counter"></span>
+          </footer>
+        </section>
         <div class="challenge-tracks" aria-label="本周压力轨道">
           <section data-track="backlog">
             <header><strong>任务积压</strong><output id="challenge-backlog-value">0</output></header>

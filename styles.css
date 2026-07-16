@@ -729,6 +729,15 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .week-challenge-shell { max-width: 1080px; }
 .challenge-toolbar { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 22px 0 12px; color: #8295a2; font-size: var(--ui-small-size); }
 .challenge-toolbar strong { color: var(--amber-soft); font-size: var(--ui-body-size); }
+.challenge-telegraph { margin-bottom: 12px; padding: 15px 16px; border-left: 3px solid var(--danger); background: rgba(219,106,106,.07); }
+.challenge-telegraph[data-state="opening"] { border-left-color: var(--blue); background: rgba(116,166,216,.06); }
+.challenge-telegraph-heading { display: flex; align-items: baseline; gap: 12px; }
+.challenge-telegraph-heading span { color: #e7b2b2; font-size: var(--ui-caption-size); font-weight: 700; }
+.challenge-telegraph[data-state="opening"] .challenge-telegraph-heading span { color: #a9c6e1; }
+.challenge-telegraph-heading strong { color: #e2e9ed; font-size: var(--ui-body-size); }
+.challenge-telegraph p { margin: 8px 0 11px; color: #aebdc6; font-size: var(--ui-small-size); line-height: 1.55; }
+.challenge-telegraph footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; padding-top: 10px; border-top: 1px solid rgba(215,231,241,.09); color: #8fa3af; font-size: var(--ui-caption-size); }
+.challenge-telegraph footer span:last-child { color: var(--amber-soft); font-weight: 700; }
 .challenge-tracks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .challenge-tracks > section { padding: 14px; border: 1px solid var(--line); background: rgba(9,22,36,.82); }
 .challenge-tracks header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

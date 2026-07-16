@@ -59,6 +59,7 @@ export function cloneChapterOneState(state: ChapterOneState): ChapterOneState {
           ...state.weekChallenge,
           tracks: { ...state.weekChallenge.tracks },
           charges: { ...state.weekChallenge.charges },
+          actionIds: [...state.weekChallenge.actionIds],
           log: [...state.weekChallenge.log]
         }
       : null,

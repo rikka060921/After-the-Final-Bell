@@ -251,14 +251,17 @@ export interface WeekExecutionState {
 
 export interface WeekChallengeState {
   week: ChapterOneWeek;
+  scenarioId: string;
   turn: number;
   maxTurns: number;
+  opponentStep: number;
   tracks: {
     backlog: number;
     attention: number;
     strain: number;
   };
   charges: Record<WeekChallengeActionId, number>;
+  actionIds: WeekChallengeActionId[];
   log: string[];
   resolved: boolean;
   outcome: "pending" | "controlled" | "frayed" | "overloaded";

@@ -32,6 +32,7 @@ import { currentWeekEvent } from "./week-events";
 import {
   challengeActions,
   challengeCopy,
+  currentWeekChallengeOpponent,
   weekChallengeOutcomeText
 } from "./week-challenge";
 
@@ -376,6 +377,20 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
       "#week-challenge-turn",
       challenge.resolved ? "三轮已结算" : `第 ${challenge.turn + 1} / ${challenge.maxTurns} 轮`
     );
+
+    const opponent = currentWeekChallengeOpponent(state);
+    const telegraph = $<HTMLElement>("#week-challenge-telegraph");
+    telegraph.dataset.state = opponent ? "incoming" : "opening";
+    setText("#week-challenge-opponent", opponent?.actor ?? (challenge.resolved ? "本周结算" : "最后窗口"));
+    setText("#week-challenge-move", opponent?.title ?? (challenge.resolved ? "角色行动已经结束" : "对方已经出完动作"));
+    setText(
+      "#week-challenge-telegraph-copy",
+      opponent?.telegraph ?? (challenge.resolved
+        ? "所有行动、克制与连携已经写入下方战报。"
+        : "这一轮不会再增加新的外部压力，按现有轨道完成收尾。")
+    );
+    setText("#week-challenge-move-effect", opponent ? `若未处理：${opponent.effect}` : "不会新增外部压力");
+    setText("#week-challenge-counter", opponent ? `克制策略：${opponent.counterLabel}` : "可以集中处理当前最高压力");
 
     (["backlog", "attention", "strain"] as const).forEach((track) => {
       const value = challenge.tracks[track];

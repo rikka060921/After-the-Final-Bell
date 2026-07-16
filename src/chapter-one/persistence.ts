@@ -14,7 +14,11 @@ import type {
   WeekExecutionState
 } from "../types";
 import { activityById, createWeekSlots } from "./model";
-import { isWeekChallengeActionId } from "./week-challenge";
+import {
+  defaultWeekChallengeScenarioId,
+  isWeekChallengeActionId,
+  isWeekChallengeScenarioId
+} from "./week-challenge";
 import { isKnownWeekEvent, isKnownWeekEventChoice } from "./week-events";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -77,22 +81,37 @@ function sanitizeWeekChallenge(value: unknown, currentWeek: ChapterOneWeek): Wee
   if (resolved !== (turn === 3)) return null;
   if (resolved && !["controlled", "frayed", "overloaded"].includes(outcome)) return null;
   if (!resolved && outcome !== "pending") return null;
-  const actionIds = ["method", "recover", "network", "coordinate", "set-boundary", "push-through"];
-  if (!actionIds.every(isWeekChallengeActionId)) return null;
+  const knownActionIds = ["method", "recover", "network", "coordinate", "set-boundary", "push-through"];
+  if (!knownActionIds.every(isWeekChallengeActionId)) return null;
+  const savedScenarioId = text(value.scenarioId);
+  if (savedScenarioId && !isWeekChallengeScenarioId(savedScenarioId, currentWeek)) return null;
+  const scenarioId = savedScenarioId || defaultWeekChallengeScenarioId(currentWeek);
+  const rawActionIds = Array.isArray(value.actionIds) ? value.actionIds : null;
+  const actionIds = rawActionIds
+    ? rawActionIds.filter((id): id is WeekChallengeState["actionIds"][number] =>
+        typeof id === "string" && isWeekChallengeActionId(id)
+      )
+    : Array.from({ length: turn }, () => "push-through" as const);
+  if (rawActionIds && (actionIds.length !== rawActionIds.length || actionIds.length !== turn)) return null;
+  const opponentStep = Math.max(0, Math.min(2, Math.trunc(number(value.opponentStep, Math.min(turn, 2)))));
+  if (opponentStep !== Math.min(turn, 2)) return null;
   return {
     week: currentWeek,
+    scenarioId,
     turn,
     maxTurns: 3,
+    opponentStep,
     tracks: {
       backlog: Math.max(0, Math.min(9, number(tracks.backlog))),
       attention: Math.max(0, Math.min(9, number(tracks.attention))),
       strain: Math.max(0, Math.min(9, number(tracks.strain)))
     },
-    charges: Object.fromEntries(actionIds.map((id) => [
+    charges: Object.fromEntries(knownActionIds.map((id) => [
       id,
       Math.max(0, Math.min(3, Math.trunc(number(charges[id]))))
     ])) as WeekChallengeState["charges"],
-    log: texts(value.log, 8),
+    actionIds,
+    log: texts(value.log, 16),
     resolved,
     outcome
   };

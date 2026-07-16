@@ -111,7 +111,7 @@ describe("chapter two domain slice", () => {
     const recap = demoRecap(current.chapterTwo);
     const shareText = demoShareText(current.chapterTwo, "陈舟");
     expect(recap.map((item) => item.label)).toEqual(["一模", "成绩单", "留言", "错峰公交"]);
-    expect(shareText).toContain("公开试玩版 v0.8.0");
+    expect(shareText).toContain("公开试玩版 v0.9.0");
     expect(shareText).toContain("第17题，下一次见。");
   });
 });

@@ -17,6 +17,8 @@ import { currentWeekEvent, resolveWeekEventChoice } from "../src/chapter-one/wee
 import {
   challengeActions,
   continueAfterWeekChallenge,
+  createWeekChallenge,
+  currentWeekChallengeOpponent,
   playWeekChallengeAction
 } from "../src/chapter-one/week-challenge";
 import { archiveSeatGame, playSeatAction } from "../src/chapter-one/seat-game";
@@ -207,6 +209,94 @@ describe("chapter one schedule", () => {
     expect(played.chapterOne.weekChallenge?.charges.method).toBe(1);
   });
 
+  it("selects the same character scenario for the same state and reacts to elevated risk", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const state = fillSixOpenSlots(initialized.chapterOne);
+    const baseline = createWeekChallenge(state, initialized.progress, initialStats());
+    const repeated = createWeekChallenge(state, initialized.progress, initialStats());
+    const watched = createWeekChallenge(
+      state,
+      initialized.progress,
+      { ...initialStats(), risk: 80 }
+    );
+
+    expect(repeated.scenarioId).toBe(baseline.scenarioId);
+    expect(watched.scenarioId).not.toBe(baseline.scenarioId);
+    expect(watched.tracks.attention).toBeGreaterThan(baseline.tracks.attention);
+  });
+
+  it("lets the telegraphed counter cancel an opponent move", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const slots = createWeekSlots(1);
+    let state = initialized.chapterOne;
+    state = assignActivity(state, slots[0]!.id, "help-liang");
+    state = assignActivity(state, slots[1]!.id, "math-mastery");
+    for (const slot of slots.slice(2, 6)) state = assignActivity(state, slot.id, "rest");
+    const challenge = createWeekChallenge(state, initialized.progress, initialStats());
+    const challengeState = { ...state, phase: "week-challenge" as const, weekChallenge: challenge };
+    const preview = currentWeekChallengeOpponent(challengeState);
+
+    expect(preview).toMatchObject({ actor: "郭祺", counterActionId: "network" });
+    const countered = playWeekChallengeAction(
+      challengeState,
+      initialized.progress,
+      initialStats(),
+      "network"
+    );
+    const ignored = playWeekChallengeAction(
+      challengeState,
+      initialized.progress,
+      initialStats(),
+      "method"
+    );
+
+    expect(countered.chapterOne.weekChallenge?.tracks.attention).toBe(
+      Math.max(0, challenge.tracks.attention - 3)
+    );
+    expect(countered.chapterOne.weekChallenge?.log.some((line) => line.includes("克制成功"))).toBe(true);
+    expect(ignored.chapterOne.weekChallenge?.tracks.attention).toBe(
+      Math.min(9, challenge.tracks.attention + 2)
+    );
+    expect(ignored.chapterOne.weekChallenge?.log.some((line) => line.includes("逐排核对座位"))).toBe(true);
+  });
+
+  it("rewards planned action order with a visible combo bonus", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const slots = createWeekSlots(1);
+    let state = initialized.chapterOne;
+    state = assignActivity(state, slots[0]!.id, "math-mastery");
+    state = assignActivity(state, slots[1]!.id, "rest");
+    for (const slot of slots.slice(2, 6)) state = assignActivity(state, slot.id, "own-goal");
+    const challengeState = {
+      ...state,
+      phase: "week-challenge" as const,
+      weekChallenge: createWeekChallenge(state, initialized.progress, initialStats())
+    };
+    const first = playWeekChallengeAction(
+      challengeState,
+      initialized.progress,
+      initialStats(),
+      "method"
+    );
+    const withoutComboState = {
+      ...first.chapterOne,
+      weekChallenge: {
+        ...first.chapterOne.weekChallenge!,
+        actionIds: ["push-through" as const]
+      }
+    };
+    const combo = playWeekChallengeAction(first.chapterOne, first.progress, first.stats, "recover");
+    const plain = playWeekChallengeAction(withoutComboState, first.progress, first.stats, "recover");
+
+    expect(combo.chapterOne.weekChallenge!.tracks.backlog).toBe(
+      plain.chapterOne.weekChallenge!.tracks.backlog - 1
+    );
+    expect(combo.chapterOne.weekChallenge!.tracks.strain).toBe(
+      plain.chapterOne.weekChallenge!.tracks.strain - 1
+    );
+    expect(combo.chapterOne.weekChallenge?.log.some((line) => line.includes("节奏回收"))).toBe(true);
+  });
+
   it("restores an in-progress pressure challenge from save data", () => {
     const initialized = initializeChapterOne(opening("blank-page"));
     const resolved = resolveCurrentWeek(
@@ -224,7 +314,44 @@ describe("chapter one schedule", () => {
     );
     const restored = sanitizeChapterOneState(structuredClone(played.chapterOne));
     expect(restored?.phase).toBe("week-challenge");
-    expect(restored?.weekChallenge).toMatchObject({ turn: 1, resolved: false, outcome: "pending" });
+    expect(restored?.weekChallenge).toMatchObject({
+      scenarioId: played.chapterOne.weekChallenge?.scenarioId,
+      turn: 1,
+      opponentStep: 1,
+      actionIds: [action.id],
+      resolved: false,
+      outcome: "pending"
+    });
+  });
+
+  it("migrates an in-progress v0.8 pressure challenge without discarding the save", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const resolved = resolveCurrentWeek(
+      fillSixOpenSlots(initialized.chapterOne),
+      initialized.progress,
+      initialStats()
+    );
+    const eventsFinished = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats);
+    const action = challengeActions(eventsFinished.chapterOne).find((candidate) => candidate.available > 0)!;
+    const played = playWeekChallengeAction(
+      eventsFinished.chapterOne,
+      eventsFinished.progress,
+      eventsFinished.stats,
+      action.id
+    );
+    const legacy = structuredClone(played.chapterOne) as unknown as Record<string, unknown>;
+    const legacyChallenge = legacy.weekChallenge as Record<string, unknown>;
+    delete legacyChallenge.scenarioId;
+    delete legacyChallenge.opponentStep;
+    delete legacyChallenge.actionIds;
+
+    const restored = sanitizeChapterOneState(legacy);
+    expect(restored?.phase).toBe("week-challenge");
+    expect(restored?.weekChallenge).toMatchObject({
+      scenarioId: "w1-register-sweep",
+      opponentStep: 1,
+      actionIds: ["push-through"]
+    });
   });
 
   it("renegotiates excessive daily contact through Zhou Tang's deterministic action", () => {
