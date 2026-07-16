@@ -11,6 +11,7 @@ import type {
   StatEffects,
   WeekExecutionState
 } from "../types";
+import { createWeekChallenge } from "./week-challenge";
 
 interface WeekEventContext {
   state: ChapterOneState;
@@ -278,13 +279,6 @@ function applyNumeric<T extends object>(target: T, effects: Partial<T> | undefin
   return next;
 }
 
-function nextPhase(week: ChapterOneWeek): ChapterOneState["phase"] {
-  if (week === 1) return "seat-game";
-  if (week === 3) return "sentence-game";
-  if (week === 4) return "exam";
-  return "review";
-}
-
 export interface ResolveWeekEventResult {
   chapterOne: ChapterOneState;
   progress: LongTermProgress;
@@ -333,8 +327,9 @@ export function resolveWeekEventChoice(
   let nextStats = applyStatEffects(stats, choice.effects ?? {}, { deriveRebellion: false }).stats;
 
   if (nextExecution.cursor >= nextExecution.eventIds.length) {
-    next.phase = nextPhase(state.currentWeek);
     nextStats = applyStatEffects(nextStats, {}, { deriveRebellion: true }).stats;
+    next.phase = "week-challenge";
+    next.weekChallenge = createWeekChallenge(next, nextProgress, nextStats);
   }
   return { chapterOne: next, progress: nextProgress, stats: nextStats };
 }

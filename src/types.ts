@@ -29,6 +29,7 @@ export type ChapterOnePeriod = "break" | "evening";
 export type ChapterOnePhase =
   | "planning"
   | "week-events"
+  | "week-challenge"
   | "seat-game"
   | "sentence-game"
   | "review"
@@ -52,6 +53,13 @@ export type ChapterOneActivityId =
   | "promise-async";
 export type AssignmentSource = "player" | "promise" | "zhou-tang";
 export type AssignmentStatus = "planned" | "done" | "missed" | "rescheduled";
+export type WeekChallengeActionId =
+  | "method"
+  | "recover"
+  | "network"
+  | "coordinate"
+  | "set-boundary"
+  | "push-through";
 export type ChapterTwoPhase = "result-letter" | "async-message" | "bus-route" | "complete";
 export type ResultFramingId = "full-context" | "progress-first" | "pressure-first";
 export type AsyncMessageId = "ask-plan" | "leave-space" | "promise-solve";
@@ -170,6 +178,7 @@ export type GameLocation =
   | { kind: "opening-profile" }
   | { kind: "chapter-one-planner"; week: ChapterOneWeek }
   | { kind: "chapter-one-events"; week: ChapterOneWeek }
+  | { kind: "chapter-one-challenge"; week: ChapterOneWeek }
   | { kind: "chapter-one-seat" }
   | { kind: "chapter-one-sentence" }
   | { kind: "chapter-one-review"; week: ChapterOneWeek }
@@ -240,6 +249,21 @@ export interface WeekExecutionState {
   log: string[];
 }
 
+export interface WeekChallengeState {
+  week: ChapterOneWeek;
+  turn: number;
+  maxTurns: number;
+  tracks: {
+    backlog: number;
+    attention: number;
+    strain: number;
+  };
+  charges: Record<WeekChallengeActionId, number>;
+  log: string[];
+  resolved: boolean;
+  outcome: "pending" | "controlled" | "frayed" | "overloaded";
+}
+
 export type SeatActionId = "wait" | "pass-liang" | "pass-zhou" | "hide" | "take-back";
 
 export interface SeatGameState {
@@ -275,6 +299,7 @@ export interface ChapterOneState {
   obligations: CalendarObligation[];
   results: ChapterOneWeekResult[];
   weekExecution: WeekExecutionState | null;
+  weekChallenge: WeekChallengeState | null;
   relationships: ChapterOneRelationships;
   resolvedEventIds: string[];
   seatGame: SeatGameState;

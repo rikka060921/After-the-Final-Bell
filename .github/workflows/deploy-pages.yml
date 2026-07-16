@@ -37,7 +37,7 @@ jobs:
       - name: Upload downloadable demo artifact
         uses: actions/upload-artifact@v4
         with:
-          name: after-the-final-bell-demo-0.7.0
+          name: after-the-final-bell-demo-0.8.0
           path: |
             dist
             tools/serve.mjs

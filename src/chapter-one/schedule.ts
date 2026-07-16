@@ -54,6 +54,14 @@ export function cloneChapterOneState(state: ChapterOneState): ChapterOneState {
           log: [...state.weekExecution.log]
         }
       : null,
+    weekChallenge: state.weekChallenge
+      ? {
+          ...state.weekChallenge,
+          tracks: { ...state.weekChallenge.tracks },
+          charges: { ...state.weekChallenge.charges },
+          log: [...state.weekChallenge.log]
+        }
+      : null,
     relationships: { ...state.relationships },
     resolvedEventIds: [...state.resolvedEventIds],
     seatGame: { ...state.seatGame, log: [...state.seatGame.log] },
@@ -448,6 +456,7 @@ export function advanceAfterReview(
     next.currentWeek = (next.currentWeek + 1) as ChapterOneWeek;
     next.phase = "planning";
     next.weekExecution = null;
+    next.weekChallenge = null;
   } else {
     if (!next.exam.resolved) throw new Error("The mock exam must be resolved before chapter completion");
     next.phase = "complete";

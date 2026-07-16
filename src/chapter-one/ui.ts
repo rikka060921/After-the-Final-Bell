@@ -5,7 +5,8 @@ import type {
   LongTermProgress,
   OpeningProfile,
   SeatActionId,
-  SentenceAssemblyRecord
+  SentenceAssemblyRecord,
+  WeekChallengeActionId
 } from "../types";
 import { currentExamStage, thirdHandwritingReveal } from "./exam";
 import { deriveChapterOneContext } from "./context";
@@ -28,6 +29,11 @@ import {
 } from "./sentence";
 import { evaluateWeekGoals } from "./week-goals";
 import { currentWeekEvent } from "./week-events";
+import {
+  challengeActions,
+  challengeCopy,
+  weekChallengeOutcomeText
+} from "./week-challenge";
 
 const $ = <T extends Element = HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector);
@@ -40,6 +46,8 @@ export interface ChapterOneUICallbacks {
   onResetWeek(): void;
   onCommitWeek(): void;
   onWeekEventChoice(choiceId: string): void;
+  onWeekChallengeAction(actionId: WeekChallengeActionId): void;
+  onWeekChallengeContinue(): void;
   onSave(): void;
   onReturnTitle(): void;
   onSeatAction(actionId: SeatActionId): void;
@@ -58,6 +66,7 @@ export interface ChapterOneUI {
     progress: LongTermProgress
   ): void;
   renderWeekEvents(state: ChapterOneState, progress: LongTermProgress, mode: GameMode): void;
+  renderWeekChallenge(state: ChapterOneState, mode: GameMode): void;
   renderSeatGame(state: ChapterOneState): void;
   renderSentenceGame(progress: LongTermProgress, mode: GameMode): void;
   renderReview(state: ChapterOneState, progress: LongTermProgress): void;
@@ -98,6 +107,7 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
 
   $("#schedule-reset-btn").addEventListener("click", callbacks.onResetWeek);
   $("#schedule-commit-btn").addEventListener("click", callbacks.onCommitWeek);
+  $("#week-challenge-continue").addEventListener("click", callbacks.onWeekChallengeContinue);
   $("#planner-save-btn").addEventListener("click", callbacks.onSave);
   $("#planner-title-btn").addEventListener("click", callbacks.onReturnTitle);
   $("#review-title-btn").addEventListener("click", callbacks.onReturnTitle);
@@ -355,6 +365,67 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
     setText("#week-event-status", `本周执行事件 ${step}/${total}`);
   }
 
+  function renderWeekChallenge(state: ChapterOneState, mode: GameMode): void {
+    const challenge = state.weekChallenge;
+    if (!challenge) return;
+    const copy = challengeCopy(state);
+    setText("#week-challenge-label", copy.label);
+    setText("#week-challenge-title", copy.title);
+    setText("#week-challenge-scene", copy.scene);
+    setText(
+      "#week-challenge-turn",
+      challenge.resolved ? "三轮已结算" : `第 ${challenge.turn + 1} / ${challenge.maxTurns} 轮`
+    );
+
+    (["backlog", "attention", "strain"] as const).forEach((track) => {
+      const value = challenge.tracks[track];
+      setText(`#challenge-${track}-value`, String(value));
+      const meter = $<HTMLElement>(`[role="meter"][aria-label="${track === "backlog" ? "任务积压" : track === "attention" ? "被注意" : "关系负荷"}"]`);
+      meter.setAttribute("aria-valuenow", String(value));
+      $<HTMLElement>(`#challenge-${track}-fill`).style.width = `${(value / 9) * 100}%`;
+      const section = meter.closest<HTMLElement>("section");
+      if (section) section.dataset.severity = value >= 7 ? "high" : value >= 4 ? "medium" : "low";
+    });
+
+    const actions = $("#week-challenge-actions");
+    actions.replaceChildren(...challengeActions(state).map((action) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "challenge-action";
+      button.disabled = challenge.resolved || action.available <= 0;
+      const title = document.createElement("strong");
+      title.textContent = action.label;
+      const description = document.createElement("small");
+      description.textContent = action.description;
+      button.append(title, description);
+      if (mode === "story") {
+        const hint = document.createElement("em");
+        hint.textContent = action.hint;
+        button.append(hint);
+      }
+      const charge = document.createElement("output");
+      charge.textContent = action.available > 0 ? `剩余 ${action.available} 次` : "本周未准备";
+      button.append(charge);
+      button.addEventListener("click", () => callbacks.onWeekChallengeAction(action.id));
+      return button;
+    }));
+
+    const outcome = $<HTMLElement>("#week-challenge-outcome");
+    outcome.hidden = !challenge.resolved;
+    setText(
+      "#week-challenge-outcome-title",
+      challenge.outcome === "controlled" ? "局面受控" : challenge.outcome === "frayed" ? "勉强接住" : "压力失控"
+    );
+    setText("#week-challenge-outcome-copy", weekChallengeOutcomeText(challenge.outcome));
+    const log = $("#week-challenge-log");
+    log.replaceChildren(...challenge.log.map((line) => {
+      const item = document.createElement("li");
+      item.textContent = line;
+      return item;
+    }));
+    setText("#week-challenge-status", challenge.resolved ? "本周压力已经结算。" : `周挑战第 ${challenge.turn + 1} 轮。`);
+  }
+
   function renderSeatGame(state: ChapterOneState): void {
     const map = $("#seat-map");
     map.replaceChildren();
@@ -586,6 +657,7 @@ export function createChapterOneUI(callbacks: ChapterOneUICallbacks): ChapterOne
   return {
     renderPlanner,
     renderWeekEvents,
+    renderWeekChallenge,
     renderSeatGame,
     renderSentenceGame,
     renderReview,

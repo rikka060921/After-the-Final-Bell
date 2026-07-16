@@ -351,6 +351,42 @@
       </div>
     </section>
 
+    <section id="week-challenge-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="week-challenge-title">
+      <div class="interaction-shell week-challenge-shell">
+        <header class="interaction-header">
+          <span id="week-challenge-label" class="paper-label">突发 · 本周压力</span>
+          <h2 id="week-challenge-title" tabindex="-1">计划遇到了意外</h2>
+          <p id="week-challenge-scene"></p>
+        </header>
+        <div class="challenge-toolbar">
+          <strong id="week-challenge-turn">第 1 / 3 轮</strong>
+          <span>三轮后按剩余压力结算</span>
+        </div>
+        <div class="challenge-tracks" aria-label="本周压力轨道">
+          <section data-track="backlog">
+            <header><strong>任务积压</strong><output id="challenge-backlog-value">0</output></header>
+            <div role="meter" aria-label="任务积压" aria-valuemin="0" aria-valuemax="9" aria-valuenow="0"><span id="challenge-backlog-fill"></span></div>
+          </section>
+          <section data-track="attention">
+            <header><strong>被注意</strong><output id="challenge-attention-value">0</output></header>
+            <div role="meter" aria-label="被注意" aria-valuemin="0" aria-valuemax="9" aria-valuenow="0"><span id="challenge-attention-fill"></span></div>
+          </section>
+          <section data-track="strain">
+            <header><strong>关系负荷</strong><output id="challenge-strain-value">0</output></header>
+            <div role="meter" aria-label="关系负荷" aria-valuemin="0" aria-valuemax="9" aria-valuenow="0"><span id="challenge-strain-fill"></span></div>
+          </section>
+        </div>
+        <div id="week-challenge-actions" class="week-challenge-actions" role="group" aria-label="本轮可用策略"></div>
+        <section id="week-challenge-outcome" class="week-challenge-outcome" hidden aria-labelledby="week-challenge-outcome-title">
+          <h3 id="week-challenge-outcome-title">本周压力已经结算</h3>
+          <p id="week-challenge-outcome-copy"></p>
+          <button id="week-challenge-continue" class="primary-btn">继续本周</button>
+        </section>
+        <ol id="week-challenge-log" class="challenge-log" aria-label="周挑战行动记录"></ol>
+        <p id="week-challenge-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    </section>
+
     <section id="seat-game-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="seat-game-title">
       <div class="interaction-shell">
         <header class="interaction-header">

@@ -14,6 +14,11 @@ import {
   resolveCurrentWeek
 } from "../src/chapter-one/schedule";
 import { currentWeekEvent, resolveWeekEventChoice } from "../src/chapter-one/week-events";
+import {
+  challengeActions,
+  continueAfterWeekChallenge,
+  playWeekChallengeAction
+} from "../src/chapter-one/week-challenge";
 import { archiveSeatGame, playSeatAction } from "../src/chapter-one/seat-game";
 import { submitSentenceAssembly } from "../src/chapter-one/sentence";
 import { EXAM_STAGES, playExamAction, thirdHandwritingReveal } from "../src/chapter-one/exam";
@@ -73,6 +78,28 @@ function finishWeekEvents(
   return { chapterOne, progress: nextProgress, stats: nextStats };
 }
 
+function finishWeekChallenge(
+  state: ReturnType<typeof initializeChapterOne>["chapterOne"],
+  progress: ReturnType<typeof initializeChapterOne>["progress"],
+  stats = initialStats()
+) {
+  let chapterOne = state;
+  let nextProgress = progress;
+  let nextStats = stats;
+  while (chapterOne.phase === "week-challenge" && !chapterOne.weekChallenge?.resolved) {
+    const action = challengeActions(chapterOne).find((candidate) => candidate.available > 0);
+    if (!action) throw new Error("Missing available challenge action");
+    ({ chapterOne, progress: nextProgress, stats: nextStats } = playWeekChallengeAction(
+      chapterOne,
+      nextProgress,
+      nextStats,
+      action.id
+    ));
+  }
+  if (chapterOne.phase === "week-challenge") chapterOne = continueAfterWeekChallenge(chapterOne);
+  return { chapterOne, progress: nextProgress, stats: nextStats };
+}
+
 describe("chapter one schedule", () => {
   it("creates exactly fourteen stable, unique slots per week", () => {
     for (const week of [1, 2, 3, 4] as const) {
@@ -125,9 +152,12 @@ describe("chapter one schedule", () => {
     );
     expect(resolved.chapterOne.phase).toBe("week-events");
     expect(resolved.chapterOne.weekExecution?.eventIds).toHaveLength(3);
-    const finished = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats);
+    const eventsFinished = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats);
+    expect(eventsFinished.chapterOne.phase).toBe("week-challenge");
+    expect(eventsFinished.chapterOne.weekExecution?.choiceIds).toHaveLength(3);
+    const finished = finishWeekChallenge(eventsFinished.chapterOne, eventsFinished.progress, eventsFinished.stats);
     expect(finished.chapterOne.phase).toBe("seat-game");
-    expect(finished.chapterOne.weekExecution?.choiceIds).toHaveLength(3);
+    expect(finished.chapterOne.weekChallenge?.turn).toBe(3);
     expect(finished.progress.facts.some((fact) => fact.startsWith("week-choice:"))).toBe(true);
   });
 
@@ -151,6 +181,52 @@ describe("chapter one schedule", () => {
     expect(restored?.weekExecution?.choiceIds).toEqual([event.choices[1]!.id]);
   });
 
+  it("turns planned activities into limited challenge actions", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const slots = createWeekSlots(1);
+    let state = initialized.chapterOne;
+    state = assignActivity(state, slots[0]!.id, "math-mastery");
+    state = assignActivity(state, slots[1]!.id, "mutual-review");
+    state = assignActivity(state, slots[2]!.id, "rest");
+    state = assignActivity(state, slots[3]!.id, "rest");
+    state = assignActivity(state, slots[4]!.id, "help-liang");
+    state = assignActivity(state, slots[5]!.id, "walk");
+    const resolved = resolveCurrentWeek(state, initialized.progress, initialStats());
+    const eventsFinished = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats);
+    const actions = Object.fromEntries(challengeActions(eventsFinished.chapterOne).map((action) => [action.id, action.available]));
+    expect(actions).toMatchObject({ method: 2, recover: 2, network: 1, coordinate: 2 });
+
+    const before = eventsFinished.chapterOne.weekChallenge!.tracks.backlog;
+    const played = playWeekChallengeAction(
+      eventsFinished.chapterOne,
+      eventsFinished.progress,
+      eventsFinished.stats,
+      "method"
+    );
+    expect(played.chapterOne.weekChallenge?.tracks.backlog).toBe(Math.max(0, before - 3));
+    expect(played.chapterOne.weekChallenge?.charges.method).toBe(1);
+  });
+
+  it("restores an in-progress pressure challenge from save data", () => {
+    const initialized = initializeChapterOne(opening("blank-page"));
+    const resolved = resolveCurrentWeek(
+      fillSixOpenSlots(initialized.chapterOne),
+      initialized.progress,
+      initialStats()
+    );
+    const eventsFinished = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats);
+    const action = challengeActions(eventsFinished.chapterOne).find((candidate) => candidate.available > 0)!;
+    const played = playWeekChallengeAction(
+      eventsFinished.chapterOne,
+      eventsFinished.progress,
+      eventsFinished.stats,
+      action.id
+    );
+    const restored = sanitizeChapterOneState(structuredClone(played.chapterOne));
+    expect(restored?.phase).toBe("week-challenge");
+    expect(restored?.weekChallenge).toMatchObject({ turn: 1, resolved: false, outcome: "pending" });
+  });
+
   it("renegotiates excessive daily contact through Zhou Tang's deterministic action", () => {
     const initialized = initializeChapterOne(opening("daily-total-contact"));
     let state = fillSixOpenSlots(initialized.chapterOne);
@@ -158,6 +234,7 @@ describe("chapter one schedule", () => {
     let stats = initialStats();
     let resolved = resolveCurrentWeek(state, progress, stats);
     ({ chapterOne: state, progress, stats } = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats));
+    ({ chapterOne: state, progress, stats } = finishWeekChallenge(state, progress, stats));
     state = playSeatAction(state, "wait");
     state = playSeatAction(state, "pass-liang");
     state = playSeatAction(state, "wait");
@@ -167,6 +244,7 @@ describe("chapter one schedule", () => {
     state = fillSixOpenSlots(state);
     resolved = resolveCurrentWeek(state, progress, stats);
     ({ chapterOne: state, progress, stats } = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats));
+    ({ chapterOne: state, progress, stats } = finishWeekChallenge(state, progress, stats));
 
     expect(progress.facts).toContain("daily-contact-renegotiated");
     expect(state.obligations.filter((item) => item.status === "renegotiated")).toHaveLength(6);
@@ -262,12 +340,14 @@ describe("chapter one schedule", () => {
       let stats = initialStats();
       let resolved = resolveCurrentWeek(state, progress, stats);
       ({ chapterOne: state, progress, stats } = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats));
+      ({ chapterOne: state, progress, stats } = finishWeekChallenge(state, progress, stats));
       state = playSeatAction(state, "take-back");
       ({ chapterOne: state, progress } = archiveSeatGame(state, progress));
       ({ chapterOne: state, progress } = advanceAfterReview(state, progress));
       state = fillSixOpenSlots(state);
       resolved = resolveCurrentWeek(state, progress, stats);
       ({ chapterOne: state, progress, stats } = finishWeekEvents(resolved.chapterOne, resolved.progress, resolved.stats));
+      ({ chapterOne: state, progress, stats } = finishWeekChallenge(state, progress, stats));
       ({ chapterOne: state, progress } = advanceAfterReview(state, progress));
 
       expect(state.currentWeek).toBe(3);
@@ -291,6 +371,7 @@ describe("chapter one schedule", () => {
         state = fillSixOpenSlots(state);
         ({ chapterOne: state, progress, stats } = resolveCurrentWeek(state, progress, stats));
         ({ chapterOne: state, progress, stats } = finishWeekEvents(state, progress, stats));
+        ({ chapterOne: state, progress, stats } = finishWeekChallenge(state, progress, stats));
         if (week === 1) {
           state = playSeatAction(state, "wait");
           state = playSeatAction(state, "pass-liang");

@@ -137,6 +137,7 @@ export function createChapterOneState(profile: OpeningProfile): ChapterOneState 
     obligations,
     results: [],
     weekExecution: null,
+    weekChallenge: null,
     relationships: {
       liangFavor: 0,
       guoSuspicion: clamp(Math.round(profile.stats.risk / 8), 0, 12),

@@ -10,9 +10,11 @@ import type {
   ChapterOneWeekPlan,
   LongTermProgress,
   ScheduledAssignment,
+  WeekChallengeState,
   WeekExecutionState
 } from "../types";
 import { activityById, createWeekSlots } from "./model";
+import { isWeekChallengeActionId } from "./week-challenge";
 import { isKnownWeekEvent, isKnownWeekEventChoice } from "./week-events";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -37,6 +39,7 @@ const weeks = new Set<ChapterOneWeek>([1, 2, 3, 4]);
 const phases = new Set<ChapterOnePhase>([
   "planning",
   "week-events",
+  "week-challenge",
   "seat-game",
   "sentence-game",
   "review",
@@ -61,6 +64,37 @@ function sanitizeWeekExecution(value: unknown, currentWeek: ChapterOneWeek): Wee
     cursor,
     choiceIds,
     log: texts(value.log, 3).slice(0, cursor)
+  };
+}
+
+function sanitizeWeekChallenge(value: unknown, currentWeek: ChapterOneWeek): WeekChallengeState | null {
+  if (!isRecord(value) || number(value.week) !== currentWeek) return null;
+  const tracks = isRecord(value.tracks) ? value.tracks : {};
+  const charges = isRecord(value.charges) ? value.charges : {};
+  const turn = Math.max(0, Math.min(3, Math.trunc(number(value.turn))));
+  const resolved = Boolean(value.resolved);
+  const outcome = text(value.outcome) as WeekChallengeState["outcome"];
+  if (resolved !== (turn === 3)) return null;
+  if (resolved && !["controlled", "frayed", "overloaded"].includes(outcome)) return null;
+  if (!resolved && outcome !== "pending") return null;
+  const actionIds = ["method", "recover", "network", "coordinate", "set-boundary", "push-through"];
+  if (!actionIds.every(isWeekChallengeActionId)) return null;
+  return {
+    week: currentWeek,
+    turn,
+    maxTurns: 3,
+    tracks: {
+      backlog: Math.max(0, Math.min(9, number(tracks.backlog))),
+      attention: Math.max(0, Math.min(9, number(tracks.attention))),
+      strain: Math.max(0, Math.min(9, number(tracks.strain)))
+    },
+    charges: Object.fromEntries(actionIds.map((id) => [
+      id,
+      Math.max(0, Math.min(3, Math.trunc(number(charges[id]))))
+    ])) as WeekChallengeState["charges"],
+    log: texts(value.log, 8),
+    resolved,
+    outcome
   };
 }
 
@@ -247,6 +281,12 @@ function isRecoverableChapterOneState(state: ChapterOneState): boolean {
     return false;
   }
   if (state.phase === "planning" && state.weekExecution) return false;
+  if (state.phase === "week-challenge") {
+    if (!state.weekChallenge) return false;
+  } else if (state.weekChallenge && !state.weekChallenge.resolved) {
+    return false;
+  }
+  if (state.phase === "planning" && state.weekChallenge) return false;
 
   const seatPending = state.seatGame.outcome === "pending";
   if (state.seatGame.resolved === seatPending) return false;
@@ -328,6 +368,7 @@ export function sanitizeChapterOneState(value: unknown): ChapterOneState | null 
   const plans = sanitizePlans(value.plans, obligations);
   const carrierSeatId = text(seat.carrierSeatId, "r6c2");
   const weekExecution = sanitizeWeekExecution(value.weekExecution, currentWeek);
+  const weekChallenge = sanitizeWeekChallenge(value.weekChallenge, currentWeek);
 
   const state: ChapterOneState = {
     schemaVersion: 1,
@@ -351,6 +392,7 @@ export function sanitizeChapterOneState(value: unknown): ChapterOneState | null 
           .slice(0, 4)
       : [],
     weekExecution,
+    weekChallenge,
     relationships: {
       liangFavor: number(relationships.liangFavor),
       guoSuspicion: number(relationships.guoSuspicion),
