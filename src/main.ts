@@ -59,7 +59,7 @@ import {
 } from "./save";
 import { applyStatEffects } from "./state";
 import { story } from "./story";
-import { nextUnreadLinearNode } from "./story-progress";
+import { fastForwardStep, nextUnreadLinearNode } from "./story-progress";
 import { CHAPTER_CATALOG, chapterAvailability } from "./chapter-catalog";
 import {
   VISIBLE_STAT_KEYS,
@@ -114,6 +114,8 @@ const dom = {
   scene: $("#scene-tag"),
   progress: $("#progress-label"),
   next: $("#next-indicator"),
+  fastForward: $<HTMLButtonElement>("#fast-forward-btn"),
+  fastForwardLabel: $("#fast-forward-label"),
   chapter: $("#chapter-label"),
   time: $("#time-label"),
   countdown: $("#countdown-label"),
@@ -152,6 +154,9 @@ let typingTimer: ReturnType<typeof setInterval> | number | null = null;
 let history: HistoryEntry[] = [];
 let readNodeIds: string[] = [];
 let inputLocked = false;
+let currentNodeWasRead = false;
+let fastForwardEnabled = false;
+let fastForwardTimer: ReturnType<typeof setTimeout> | number | null = null;
 let settings: GameSettings = defaultSettings();
 let gameMode: GameMode = defaultMode();
 let notebook: NotebookState = defaultNotebookState();
@@ -198,7 +203,67 @@ function tone(frequency = 520, duration = .05, volume = .025) {
   oscillator.stop(audioContext.currentTime + duration);
 }
 
+function showSystemToast(message: string) {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+  dom.toast.append(toast);
+  setTimeout(() => toast.remove(), 2900);
+}
+
+function updateFastForwardControl() {
+  dom.fastForward.classList.toggle("is-active", fastForwardEnabled);
+  dom.fastForward.setAttribute("aria-pressed", String(fastForwardEnabled));
+  dom.fastForward.title = fastForwardEnabled ? "停止快进（F）" : "切换快进（F）";
+  dom.fastForwardLabel.textContent = fastForwardEnabled ? "快进中" : "快进";
+  document.body.classList.toggle("fast-forwarding", fastForwardEnabled);
+}
+
+function stopFastForward(reason?: "unread" | "interaction" | "ending" | "dead-end" | "missing") {
+  const wasEnabled = fastForwardEnabled;
+  fastForwardEnabled = false;
+  if (fastForwardTimer !== null) clearTimeout(fastForwardTimer);
+  fastForwardTimer = null;
+  updateFastForwardControl();
+  if (!wasEnabled || !reason) return;
+  if (reason === "unread") showSystemToast("快进已停在未读对白");
+  else if (reason === "interaction") showSystemToast("快进已停在选择或互动处");
+  else if (reason === "ending") showSystemToast("快进已停在章节结点");
+  else showSystemToast("快进已停止");
+}
+
+function scheduleFastForward() {
+  if (!fastForwardEnabled || !currentNodeId || isTyping) return;
+  if (fastForwardTimer !== null) clearTimeout(fastForwardTimer);
+  fastForwardTimer = window.setTimeout(() => {
+    fastForwardTimer = null;
+    if (!fastForwardEnabled || !currentNodeId) return;
+    const step = fastForwardStep(story, currentNodeId, currentNodeWasRead, settings.skipRead);
+    if (step.kind === "stop") {
+      stopFastForward(step.reason);
+      return;
+    }
+    goTo(step.nextNodeId);
+  }, settings.reducedMotion ? 80 : 220);
+}
+
+function toggleFastForward() {
+  if (fastForwardEnabled) {
+    stopFastForward();
+    return;
+  }
+  if (!currentNodeId || !dom.dialogue.classList.contains("is-visible")) return;
+  if (settings.skipRead && !currentNodeWasRead) {
+    showSystemToast("当前是未读对白；关闭“只跳过已读对白”后可继续快进");
+    return;
+  }
+  fastForwardEnabled = true;
+  updateFastForwardControl();
+  if (!completeCurrentText()) scheduleFastForward();
+}
+
 function hideAllScreens() {
+  stopFastForward();
   $$<HTMLElement>(".screen").forEach((el) => {
     el.classList.remove("is-visible");
     el.hidden = true;
@@ -216,6 +281,7 @@ function revealScreen(screen: HTMLElement, focusSelector?: string) {
 }
 
 function openPanel(id: string) {
+  stopFastForward();
   const panel = document.getElementById(id);
   if (!panel) return;
   panel.hidden = false;
@@ -403,7 +469,7 @@ function typeText(text: string, onComplete?: () => void) {
   dom.dialogue.classList.add("waiting");
   dom.next.textContent = "点击显示全文";
 
-  if (settings.reducedMotion || settings.speed >= 42) {
+  if (fastForwardEnabled || settings.reducedMotion || settings.speed >= 42) {
     finishTyping(onComplete);
     return;
   }
@@ -436,6 +502,8 @@ function goTo(nodeId: string, fromLoad = false) {
   inputLocked = false;
   currentNodeId = nodeId;
   const wasRead = readNodeIds.includes(nodeId);
+  currentNodeWasRead = wasRead;
+  if (fastForwardEnabled && settings.skipRead && !wasRead) stopFastForward("unread");
   readNodeIds = [...new Set([...readNodeIds, nodeId])].slice(-240);
   gameLocation = { kind: "story", graphId: "prologue", nodeId };
   dom.choices.replaceChildren();
@@ -453,6 +521,7 @@ function goTo(nodeId: string, fromLoad = false) {
   addHistory(speaker, text);
 
   if (node.overlay === "notebook") {
+    stopFastForward("interaction");
     dom.text.textContent = text;
     isTyping = false;
     renderNotebook();
@@ -464,6 +533,7 @@ function goTo(nodeId: string, fromLoad = false) {
   typeText(text, () => {
     if (node.choices) revealChoices(node.choices);
     if (node.end) dom.next.textContent = "查看本章结局⌄";
+    scheduleFastForward();
   });
 
   if (!fromLoad) autoSave();
@@ -496,6 +566,7 @@ function advance() {
 }
 
 function revealChoices(choices: StoryChoice[]) {
+  stopFastForward("interaction");
   if (dom.choices.children.length) return;
   dom.next.textContent = "请选择";
   choices.forEach((choice, index) => {
@@ -1373,10 +1444,15 @@ chapterThreeUI = createChapterThreeUI({
 
 dom.dialogue.addEventListener("click", advance);
 dom.dialogue.addEventListener("keydown", (event) => {
+  if ((event.target as Element | null)?.closest("button")) return;
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
     advance();
   }
+});
+dom.fastForward.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleFastForward();
 });
 
 $("#new-game-btn").addEventListener("click", () => { initAudio(); tone(); showModeSelection(); });
@@ -1449,6 +1525,11 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (target?.closest("input, button, select, textarea, dialog") || standaloneScreenVisible) return;
+  if (event.key.toLowerCase() === "f") {
+    event.preventDefault();
+    toggleFastForward();
+    return;
+  }
   if (event.key.toLowerCase() === "s") { manualSave(); return; }
   if (event.key.toLowerCase() === "l") { loadGame(); return; }
   const number = Number(event.key);
@@ -1466,6 +1547,7 @@ Object.values(backgrounds).forEach((src) => { const image = new Image(); image.s
 $("#title-version").textContent = `公开试玩版 · v${GAME_VERSION}`;
 $("#demo-version").textContent = `PUBLIC DEMO · v${GAME_VERSION}`;
 applySettings();
+updateFastForwardControl();
 applyGameMode();
 updateStatsUI();
 renderLedger();

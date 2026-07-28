@@ -102,7 +102,12 @@
       <p id="dialogue-text" class="dialogue-text"></p>
       <div class="dialogue-footer">
         <span id="progress-label">序章 · 01</span>
-        <span id="next-indicator" class="next-indicator">点击继续⌄</span>
+        <div class="dialogue-controls">
+          <button id="fast-forward-btn" class="dialogue-fast-forward" type="button" aria-pressed="false" title="切换快进（F）">
+            <span id="fast-forward-label">快进</span> <kbd>F</kbd>
+          </button>
+          <span id="next-indicator" class="next-indicator">点击继续⌄</span>
+        </div>
       </div>
     </section>
 
@@ -204,6 +209,7 @@
         <label class="toggle-row">只跳过已读对白
           <input id="skip-read-toggle" type="checkbox">
         </label>
+        <p class="settings-note">按 <kbd>F</kbd> 切换快进。选择、小游戏和章节结点会自动停止；开启“只跳过已读对白”后，快进也会停在未读内容前。</p>
       </div>
     </section>
 
