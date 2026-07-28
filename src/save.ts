@@ -3,6 +3,7 @@ import {
   GAME_VERSION,
   LEGACY_SAVE_KEY,
   MANUAL_SAVE_KEYS,
+  ORIGINAL_SAVE_KEY,
   PREVIOUS_SAVE_KEY,
   SAVE_KEY,
   SAVE_VERSION,
@@ -17,11 +18,13 @@ import {
   sanitizeLongTermProgress
 } from "./chapter-one/persistence";
 import { sanitizeChapterTwoState } from "./chapter-two/persistence";
+import { sanitizeChapterThreeState } from "./chapter-three/persistence";
 import { cloneChapterOneState } from "./chapter-one/schedule";
 import type {
   BackgroundKey,
   ChapterOneState,
   ChapterTwoState,
+  ChapterThreeState,
   EndingId,
   GameLocation,
   GameMode,
@@ -33,7 +36,7 @@ import type {
   NotebookState,
   OpeningProfile,
   PromiseEntry,
-  SaveDataV4,
+  SaveDataV5,
   StoryGraph
 } from "./types";
 
@@ -64,6 +67,7 @@ export interface SaveSnapshot {
   location: GameLocation;
   chapterOne: ChapterOneState | null;
   chapterTwo?: ChapterTwoState | null;
+  chapterThree?: ChapterThreeState | null;
   progress: LongTermProgress;
 }
 
@@ -212,7 +216,8 @@ function sanitizeLocation(
   currentNodeId: string | null,
   openingProfile: OpeningProfile | null,
   chapterOne: ChapterOneState | null,
-  chapterTwo: ChapterTwoState | null
+  chapterTwo: ChapterTwoState | null,
+  chapterThree: ChapterThreeState | null
 ): GameLocation | null {
   const chapterLocation = (): GameLocation => {
     if (!chapterOne) throw new Error("Chapter-one state is required");
@@ -240,6 +245,13 @@ function sanitizeLocation(
     if (chapterTwo.phase === "bus-route") return { kind: "chapter-two-bus" };
     return { kind: "chapter-two-complete" };
   };
+  const chapterThreeLocation = (): GameLocation => {
+    if (!chapterThree) throw new Error("Chapter-three state is required");
+    if (chapterThree.phase === "lead-board") return { kind: "chapter-three-leads" };
+    if (chapterThree.phase === "testimony-board") return { kind: "chapter-three-testimony" };
+    if (chapterThree.phase === "privacy-choice") return { kind: "chapter-three-privacy" };
+    return { kind: "chapter-three-complete" };
+  };
   if (isRecord(value)) {
     const kind = asString(value.kind);
     if (kind === "story") {
@@ -255,6 +267,9 @@ function sanitizeLocation(
     if (chapterTwo && chapterOne?.phase === "complete" && openingProfile && kind.startsWith("chapter-two-")) {
       return chapterTwoLocation();
     }
+    if (chapterThree && chapterTwo?.phase === "complete" && openingProfile && kind.startsWith("chapter-three-")) {
+      return chapterThreeLocation();
+    }
   }
   if (currentNodeId && graph[currentNodeId]) {
     return { kind: "story", graphId: "prologue", nodeId: currentNodeId };
@@ -263,7 +278,7 @@ function sanitizeLocation(
   return null;
 }
 
-export function createSaveData(snapshot: SaveSnapshot): SaveDataV4 {
+export function createSaveData(snapshot: SaveSnapshot): SaveDataV5 {
   return {
     version: SAVE_VERSION,
     gameVersion: GAME_VERSION,
@@ -279,6 +294,7 @@ export function createSaveData(snapshot: SaveSnapshot): SaveDataV4 {
     location: { ...snapshot.location },
     chapterOne: snapshot.chapterOne ? cloneChapterOneState(snapshot.chapterOne) : null,
     chapterTwo: snapshot.chapterTwo ? structuredClone(snapshot.chapterTwo) : null,
+    chapterThree: snapshot.chapterThree ? structuredClone(snapshot.chapterThree) : null,
     progress: {
       facts: [...snapshot.progress.facts],
       tendencies: { ...snapshot.progress.tendencies },
@@ -288,7 +304,7 @@ export function createSaveData(snapshot: SaveSnapshot): SaveDataV4 {
   };
 }
 
-export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV4 | null {
+export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV5 | null {
   let value: unknown;
   try {
     value = JSON.parse(raw);
@@ -302,13 +318,15 @@ export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV4 | null
   const openingProfile = sanitizeOpeningProfile(value.openingProfile);
   const chapterOne = sanitizeChapterOneState(value.chapterOne);
   const chapterTwo = sanitizeChapterTwoState(value.chapterTwo);
+  const chapterThree = sanitizeChapterThreeState(value.chapterThree);
   const location = sanitizeLocation(
     value.location,
     graph,
     currentNodeId,
     openingProfile,
     chapterOne,
-    chapterTwo
+    chapterTwo,
+    chapterThree
   );
   if (!location) return null;
 
@@ -334,13 +352,14 @@ export function parseSaveData(raw: string, graph: StoryGraph): SaveDataV4 | null
     location,
     chapterOne,
     chapterTwo,
+    chapterThree,
     progress: sanitizeLongTermProgress(value.progress ?? defaultLongTermProgress()),
     savedAt: asString(value.savedAt, new Date(0).toISOString())
   };
 }
 
-export function readStoredSave(storage: StorageLike, graph: StoryGraph): SaveDataV4 | null {
-  for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, FOUNDATION_SAVE_KEY, LEGACY_SAVE_KEY]) {
+export function readStoredSave(storage: StorageLike, graph: StoryGraph): SaveDataV5 | null {
+  for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, FOUNDATION_SAVE_KEY, LEGACY_SAVE_KEY, ORIGINAL_SAVE_KEY]) {
     const raw = storage.getItem(key);
     if (!raw) continue;
     const save = parseSaveData(raw, graph);
@@ -354,7 +373,7 @@ export function readStoredSave(storage: StorageLike, graph: StoryGraph): SaveDat
   return null;
 }
 
-export function writeStoredSave(storage: StorageLike, save: SaveDataV4): void {
+export function writeStoredSave(storage: StorageLike, save: SaveDataV5): void {
   storage.setItem(SAVE_KEY, JSON.stringify(save));
 }
 
@@ -362,7 +381,7 @@ export function readManualSave(
   storage: StorageLike,
   graph: StoryGraph,
   slot: ManualSaveSlot
-): SaveDataV4 | null {
+): SaveDataV5 | null {
   const key = MANUAL_SAVE_KEYS[slot];
   const raw = storage.getItem(key);
   if (!raw) return null;
@@ -376,7 +395,7 @@ export function readManualSave(
 
 export function writeManualSave(
   storage: StorageLike,
-  save: SaveDataV4,
+  save: SaveDataV5,
   slot: ManualSaveSlot
 ): void {
   storage.setItem(MANUAL_SAVE_KEYS[slot], JSON.stringify(save));

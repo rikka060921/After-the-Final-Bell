@@ -26,7 +26,7 @@
       <h1 id="title-heading" tabindex="-1">晚自习之后</h1>
       <p class="title-subtitle">白天，我们替未来答题。<br>晚自习之后，才轮到我们喜欢彼此。</p>
       <div class="title-meta">
-        <span>序章—第二章 · 纵向试玩</span>
+        <span>序章—第三章 · 纵向试玩</span>
         <span>自动存档 · 支持重玩</span>
       </div>
       <div class="title-actions">
@@ -552,8 +552,8 @@
 
     <section id="chapter-two-complete-screen" class="screen chapter-screen chapter-complete-screen" hidden inert aria-labelledby="chapter-two-complete-title">
       <div class="chapter-complete-card">
-        <span class="ending-kicker">PUBLIC DEMO · END</span>
-        <h2 id="chapter-two-complete-title" tabindex="-1">你已经走到本次试玩的铃声之后</h2>
+        <span class="ending-kicker">CHAPTER 02 · END</span>
+        <h2 id="chapter-two-complete-title" tabindex="-1">错峰路线已经写完</h2>
         <p id="chapter-two-complete-summary" class="chapter-hook"></p>
         <blockquote id="chapter-two-complete-message"></blockquote>
         <p id="chapter-two-complete-hook" class="handwriting-reveal"></p>
@@ -568,9 +568,64 @@
         <textarea id="demo-copy-fallback" class="demo-copy-fallback" readonly hidden aria-label="可手动复制的试玩总结"></textarea>
         <p id="demo-copy-status" class="demo-copy-status" role="status" aria-live="polite"></p>
         <div class="ending-actions">
-          <button id="chapter-two-copy-btn" class="primary-btn">复制本次试玩总结</button>
+          <button id="chapter-three-start-btn" class="primary-btn">进入第三章 · 纸页的背面</button>
+          <button id="chapter-two-copy-btn" class="ghost-btn">复制当前总结</button>
           <button id="chapter-two-replay-btn" class="ghost-btn">从序章重新开始</button>
           <button id="chapter-two-title-btn" class="ghost-btn">返回标题</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="chapter-three-lead-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="chapter-three-lead-title">
+      <div class="interaction-shell chapter-three-shell">
+        <header class="interaction-header">
+          <span class="paper-label">CHAPTER 03 · 校园信息网</span>
+          <h2 id="chapter-three-lead-title" tabindex="-1">纸页消失后，你只能核对三条线</h2>
+          <p>调查点来自真实时间。选过的信息源会留下证词，也会占用学习、关系或被注意的空间。</p>
+        </header>
+        <div class="investigation-toolbar"><strong id="chapter-three-points"></strong><span id="chapter-three-distance"></span></div>
+        <div id="chapter-three-lead-list" class="investigation-grid" role="group" aria-label="可调查信息源"></div>
+        <ol id="chapter-three-lead-log" class="interaction-log"></ol>
+        <p id="chapter-three-lead-status" class="sr-only" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section id="chapter-three-testimony-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="chapter-three-testimony-title">
+      <div class="interaction-shell chapter-three-shell">
+        <header class="interaction-header">
+          <span class="paper-label">CHAPTER 03 · 证词排序</span>
+          <h2 id="chapter-three-testimony-title" tabindex="-1">不要选择相信谁，先判断什么能核对</h2>
+          <p>用箭头调整顺序。实物、记录、当事人承认、间接线索与转述应当承担不同重量。</p>
+        </header>
+        <ol id="chapter-three-testimony-list" class="testimony-board"></ol>
+        <div class="testimony-submit"><p id="chapter-three-order-status"></p><button id="chapter-three-order-submit" class="primary-btn">确认来源顺序</button></div>
+      </div>
+    </section>
+
+    <section id="chapter-three-privacy-screen" class="screen chapter-screen interaction-screen" hidden inert aria-labelledby="chapter-three-privacy-title">
+      <div class="interaction-shell chapter-three-shell">
+        <header class="interaction-header">
+          <span class="paper-label">CHAPTER 03 · 隐私边界</span>
+          <h2 id="chapter-three-privacy-title" tabindex="-1">证明清白，需要交出谁的秘密</h2>
+          <p id="chapter-three-quality"></p>
+          <p id="chapter-three-privacy-distance" class="chapter-two-narrative"></p>
+        </header>
+        <div id="chapter-three-privacy-actions" class="exam-actions" role="group" aria-label="纸页处理方式"></div>
+        <p id="chapter-three-privacy-status" class="sr-only" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section id="chapter-three-complete-screen" class="screen chapter-screen chapter-complete-screen" hidden inert aria-labelledby="chapter-three-complete-title">
+      <div class="chapter-complete-card">
+        <span class="ending-kicker">PUBLIC DEMO · END</span>
+        <h2 id="chapter-three-complete-title" tabindex="-1">真相只揭开了一半</h2>
+        <p id="chapter-three-complete-summary" class="chapter-hook"></p>
+        <p id="chapter-three-complete-distance" class="handwriting-reveal"></p>
+        <ol id="chapter-three-complete-log" class="interaction-log"></ol>
+        <p class="chapter-hook">郭祺拿过原页，办公室里的复印件却不是她放的。百日誓师的重点关注名单已经贴上墙。</p>
+        <div class="ending-actions">
+          <button id="chapter-three-replay-btn" class="ghost-btn">从序章重新开始</button>
+          <button id="chapter-three-title-btn" class="primary-btn">返回标题</button>
         </div>
       </div>
     </section>

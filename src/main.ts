@@ -42,6 +42,14 @@ import { sendAsyncMessage } from "./chapter-two/message";
 import { chooseResultFraming } from "./chapter-two/result";
 import { createChapterTwoUI, type ChapterTwoUI } from "./chapter-two/ui";
 import {
+  initializeChapterThree,
+  investigateLead,
+  moveTestimony,
+  resolvePrivacyChoice,
+  submitTestimonyOrder
+} from "./chapter-three/domain";
+import { createChapterThreeUI, type ChapterThreeUI } from "./chapter-three/ui";
+import {
   createSaveData,
   hasStoredSave,
   readManualSave,
@@ -59,6 +67,7 @@ import {
   type ChapterOneActivityId,
   type ChapterOneState,
   type ChapterTwoState,
+  type ChapterThreeState,
   type EndingId,
   type GameLocation,
   type GameMode,
@@ -75,7 +84,10 @@ import {
   type AsyncMessageId,
   type BusActionId,
   type ResultFramingId,
-  type SaveDataV4,
+  type InvestigationLeadId,
+  type PrivacyChoiceId,
+  type TestimonyId,
+  type SaveDataV5,
   type StatChange,
   type StatEffects,
   type StoryChoice
@@ -122,6 +134,10 @@ const dom = {
   chapterTwoMessage: $("#chapter-two-message-screen"),
   chapterTwoBus: $("#chapter-two-bus-screen"),
   chapterTwoComplete: $("#chapter-two-complete-screen"),
+  chapterThreeLeads: $("#chapter-three-lead-screen"),
+  chapterThreeTestimony: $("#chapter-three-testimony-screen"),
+  chapterThreePrivacy: $("#chapter-three-privacy-screen"),
+  chapterThreeComplete: $("#chapter-three-complete-screen"),
   toast: $("#toast-stack")
 };
 
@@ -145,9 +161,11 @@ let openingProfile: OpeningProfile | null = null;
 let gameLocation: GameLocation = { kind: "story", graphId: "prologue", nodeId: "intro_01" };
 let chapterOne: ChapterOneState | null = null;
 let chapterTwo: ChapterTwoState | null = null;
+let chapterThree: ChapterThreeState | null = null;
 let longTermProgress: LongTermProgress = defaultLongTermProgress();
 let chapterOneUI: ChapterOneUI;
 let chapterTwoUI: ChapterTwoUI;
+let chapterThreeUI: ChapterThreeUI;
 let audioContext: AudioContext | null = null;
 
 function interpolate(text = ""): string {
@@ -281,6 +299,7 @@ function newGame() {
   openingProfile = null;
   chapterOne = null;
   chapterTwo = null;
+  chapterThree = null;
   longTermProgress = defaultLongTermProgress();
   gameLocation = { kind: "story", graphId: "prologue", nodeId: "intro_01" };
   hideAllScreens();
@@ -700,6 +719,13 @@ function chapterTwoLocationForState(state: ChapterTwoState): GameLocation {
   return { kind: "chapter-two-complete" };
 }
 
+function chapterThreeLocationForState(state: ChapterThreeState): GameLocation {
+  if (state.phase === "lead-board") return { kind: "chapter-three-leads" };
+  if (state.phase === "testimony-board") return { kind: "chapter-three-testimony" };
+  if (state.phase === "privacy-choice") return { kind: "chapter-three-privacy" };
+  return { kind: "chapter-three-complete" };
+}
+
 function showChapterOneState(save = true) {
   if (!chapterOne || !openingProfile) return;
   if (typingTimer !== null) clearInterval(typingTimer);
@@ -769,6 +795,32 @@ function showChapterTwoState(save = true) {
   if (save) autoSave();
 }
 
+function showChapterThreeState(save = true) {
+  if (!chapterThree || !openingProfile) return;
+  hideAllScreens();
+  closeTransientPanels();
+  dom.hud.classList.remove("is-visible");
+  dom.dialogue.classList.remove("is-visible");
+  dom.choices.replaceChildren();
+  dom.portrait.hidden = true;
+  setBackground(chapterThree.phase === "complete" ? "corridor" : "classroom", true);
+  gameLocation = chapterThreeLocationForState(chapterThree);
+  if (chapterThree.phase === "lead-board") {
+    chapterThreeUI.renderLeads(chapterThree, gameMode);
+    revealScreen(dom.chapterThreeLeads, "#chapter-three-lead-title");
+  } else if (chapterThree.phase === "testimony-board") {
+    chapterThreeUI.renderTestimony(chapterThree);
+    revealScreen(dom.chapterThreeTestimony, "#chapter-three-testimony-title");
+  } else if (chapterThree.phase === "privacy-choice") {
+    chapterThreeUI.renderPrivacy(chapterThree, gameMode);
+    revealScreen(dom.chapterThreePrivacy, "#chapter-three-privacy-title");
+  } else {
+    chapterThreeUI.renderComplete(chapterThree);
+    revealScreen(dom.chapterThreeComplete, "#chapter-three-complete-title");
+  }
+  if (save) autoSave();
+}
+
 function startChapterOne() {
   if (!openingProfile) return;
   if (!chapterOne) {
@@ -792,6 +844,13 @@ function startChapterTwo() {
   }
   tone(620, .12, .025);
   showChapterTwoState();
+}
+
+function startChapterThree() {
+  if (!openingProfile || !chapterTwo) return;
+  if (!chapterThree) chapterThree = initializeChapterThree(chapterTwo, longTermProgress);
+  tone(620, .12, .025);
+  showChapterThreeState();
 }
 
 function handleChapterAssignment(slotId: string, activityId: ChapterOneActivityId) {
@@ -987,6 +1046,31 @@ function handleChapterTwoBusAction(actionId: BusActionId) {
   }
 }
 
+function handleChapterThreeLead(leadId: InvestigationLeadId) {
+  if (!chapterThree) return;
+  const result = investigateLead(chapterThree, longTermProgress, stats, leadId);
+  chapterThree = result.chapterThree; longTermProgress = result.progress; stats = result.stats;
+  updateStatsUI(); showChapterThreeState();
+}
+
+function handleTestimonyMove(id: TestimonyId, direction: "up" | "down") {
+  if (!chapterThree) return;
+  chapterThree = moveTestimony(chapterThree, id, direction);
+  autoSave(); chapterThreeUI.renderTestimony(chapterThree);
+}
+
+function handleTestimonySubmit() {
+  if (!chapterThree) return;
+  chapterThree = submitTestimonyOrder(chapterThree); showChapterThreeState();
+}
+
+function handlePrivacyChoice(id: PrivacyChoiceId) {
+  if (!chapterThree) return;
+  const result = resolvePrivacyChoice(chapterThree, longTermProgress, stats, id);
+  chapterThree = result.chapterThree; longTermProgress = result.progress; stats = result.stats;
+  updateStatsUI(); showChapterThreeState();
+}
+
 async function copyDemoSummary(): Promise<void> {
   if (!chapterTwo || chapterTwo.phase !== "complete") return;
   const summary = demoShareText(chapterTwo, playerName);
@@ -1042,6 +1126,7 @@ function savePayload(nextNode: string | null = null) {
     location,
     chapterOne,
     chapterTwo,
+    chapterThree,
     progress: longTermProgress
   });
 }
@@ -1075,7 +1160,11 @@ function locationLabel(location: GameLocation): string {
   if (location.kind === "chapter-two-result") return "第二章 · 成绩单";
   if (location.kind === "chapter-two-message") return "第二章 · 异步留言";
   if (location.kind === "chapter-two-bus") return "第二章 · 错峰公交";
-  return "第二章 · 章末";
+  if (location.kind === "chapter-two-complete") return "第二章 · 章末";
+  if (location.kind === "chapter-three-leads") return "第三章 · 校园信息网";
+  if (location.kind === "chapter-three-testimony") return "第三章 · 证词排序";
+  if (location.kind === "chapter-three-privacy") return "第三章 · 隐私边界";
+  return "第三章 · 章末";
 }
 
 function renderSaveSlots() {
@@ -1145,7 +1234,8 @@ function renderChapterCatalog() {
     const canEnter =
       chapter.id === "prologue" ||
       (chapter.id === "chapter-one" && Boolean(openingProfile)) ||
-      (chapter.id === "chapter-two" && chapterOne?.phase === "complete");
+      (chapter.id === "chapter-two" && chapterOne?.phase === "complete") ||
+      (chapter.id === "chapter-three" && chapterTwo?.phase === "complete");
     action.className = status === "locked" || !canEnter ? "ghost-btn" : "primary-btn";
     action.disabled = status === "locked" || !canEnter;
     action.textContent = chapter.id === "prologue"
@@ -1154,19 +1244,20 @@ function renderChapterCatalog() {
         ? "进入第一章"
         : chapter.id === "chapter-two"
           ? "进入第二章"
-          : "开发中";
+          : "进入第三章";
     action.addEventListener("click", () => {
       closePanel("chapter-catalog-panel");
       if (chapter.id === "prologue") resetAndReplay();
       else if (chapter.id === "chapter-one" && openingProfile) startChapterOne();
       else if (chapter.id === "chapter-two" && chapterOne?.phase === "complete") startChapterTwo();
+      else if (chapter.id === "chapter-three" && chapterTwo?.phase === "complete") startChapterThree();
     });
     entry.append(copy, action);
     list.append(entry);
   });
 }
 
-function applyLoadedSave(save: SaveDataV4) {
+function applyLoadedSave(save: SaveDataV5) {
     playerName = save.playerName || "陈舟";
     stats = { ...initialStats(), ...save.stats };
     history = save.history;
@@ -1179,6 +1270,7 @@ function applyLoadedSave(save: SaveDataV4) {
     openingProfile = save.openingProfile;
     chapterOne = save.chapterOne;
     chapterTwo = save.chapterTwo;
+    chapterThree = save.chapterThree;
     longTermProgress = save.progress;
     gameLocation = save.location;
     currentNodeId = save.currentNodeId;
@@ -1201,6 +1293,8 @@ function applyLoadedSave(save: SaveDataV4) {
       goTo(save.location.nodeId, true);
     } else if (save.location.kind === "opening-profile") {
       showOpeningProfile();
+    } else if (chapterThree && openingProfile && save.location.kind.startsWith("chapter-three-")) {
+      showChapterThreeState(false);
     } else if (chapterTwo && openingProfile && save.location.kind.startsWith("chapter-two-")) {
       showChapterTwoState(false);
     } else if (chapterOne && openingProfile) {
@@ -1268,6 +1362,15 @@ chapterTwoUI = createChapterTwoUI({
   onReturnTitle: showTitle
 });
 
+chapterThreeUI = createChapterThreeUI({
+  onLead: handleChapterThreeLead,
+  onMoveTestimony: handleTestimonyMove,
+  onSubmitOrder: handleTestimonySubmit,
+  onPrivacyChoice: handlePrivacyChoice,
+  onReplay: resetAndReplay,
+  onReturnTitle: showTitle
+});
+
 dom.dialogue.addEventListener("click", advance);
 dom.dialogue.addEventListener("keydown", (event) => {
   if (event.key === "Enter" || event.key === " ") {
@@ -1306,6 +1409,7 @@ $("#title-btn").addEventListener("click", showTitle);
 $("#carry-forward-btn").addEventListener("click", showOpeningProfile);
 $("#profile-start-btn").addEventListener("click", startChapterOne);
 $("#chapter-two-start-btn").addEventListener("click", startChapterTwo);
+$("#chapter-three-start-btn").addEventListener("click", startChapterThree);
 $("#profile-replay-btn").addEventListener("click", resetAndReplay);
 $("#profile-title-btn").addEventListener("click", showTitle);
 

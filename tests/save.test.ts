@@ -11,6 +11,7 @@ import {
 import { createOpeningProfile } from "../src/opening-profile";
 import { initializeChapterOne } from "../src/chapter-one/opening";
 import { initializeChapterTwo } from "../src/chapter-two/opening";
+import { initializeChapterThree } from "../src/chapter-three/domain";
 import {
   createSaveData,
   parseSaveData,
@@ -142,7 +143,7 @@ describe("save migration", () => {
     );
 
     const save = readStoredSave(storage, story);
-    expect(save?.version).toBe(4);
+    expect(save?.version).toBe(5);
     expect(save?.stats.bond).toBe(19);
     expect(save?.currentNodeId).toBe("intro_02");
     expect(save?.mode).toBe("story");
@@ -160,7 +161,7 @@ describe("save migration", () => {
     expect(storage.getItem(SAVE_KEY)).toBeNull();
   });
 
-  it("migrates the engineering-foundation v2 key to v4 defaults", () => {
+  it("migrates the engineering-foundation v2 key to v5 defaults", () => {
     const storage = new MemoryStorage();
     storage.setItem(
       FOUNDATION_SAVE_KEY,
@@ -181,7 +182,7 @@ describe("save migration", () => {
     );
 
     const save = readStoredSave(storage, story);
-    expect(save?.version).toBe(4);
+    expect(save?.version).toBe(5);
     expect(save?.mode).toBe("story");
     expect(save?.notebook.committed).toBe(false);
     expect(storage.getItem(SAVE_KEY)).not.toBeNull();
@@ -212,7 +213,7 @@ describe("save migration", () => {
       })
     );
     const save = readStoredSave(storage, story);
-    expect(save?.version).toBe(4);
+    expect(save?.version).toBe(5);
     expect(save?.location).toEqual({ kind: "story", graphId: "prologue", nodeId: "resolve_ending" });
   });
 
@@ -350,12 +351,23 @@ describe("save migration", () => {
     expect(storage.getItem("after-evening-study-manual-save-3")).toBeNull();
   });
 
-  it("preserves the replay setting through v4 parsing", () => {
+  it("preserves the replay setting through v5 parsing", () => {
     const { save } = plannerFixture();
     const raw = JSON.parse(JSON.stringify(save));
     raw.settings.skipRead = true;
     const parsed = parseSaveData(JSON.stringify(raw), story);
     expect(parsed?.settings.skipRead).toBe(true);
+  });
+
+  it("migrates a v4 save with no third chapter into v5", () => {
+    const { save } = plannerFixture();
+    const raw = JSON.parse(JSON.stringify(save));
+    raw.version = 4;
+    delete raw.chapterThree;
+    const parsed = parseSaveData(JSON.stringify(raw), story);
+    expect(parsed?.version).toBe(5);
+    expect(parsed?.chapterThree).toBeNull();
+    expect(parsed?.location.kind).toBe("chapter-one-planner");
   });
 
   it("round-trips a chapter-two result-letter location", () => {
@@ -418,5 +430,45 @@ describe("save migration", () => {
     const parsed = parseSaveData(JSON.stringify(save), story);
     expect(parsed?.chapterTwo).toBeNull();
     expect(parsed?.location).toEqual({ kind: "opening-profile" });
+  });
+
+  it("round-trips a third-chapter investigation through the v5 save", () => {
+    const { profile } = plannerFixture();
+    const first = initializeChapterOne(profile);
+    markFirstChapterComplete(first.chapterOne);
+    first.progress.facts.push("chapter-one-complete");
+    const second = initializeChapterTwo(first.chapterOne, first.progress, initialStats());
+    second.phase = "complete";
+    second.framing = "full-context";
+    second.message = { id: "leave-space", wordCount: 18, text: "可以先不回答。我也会写好自己的计划。" };
+    second.bus.resolved = true;
+    second.bus.outcome = "met";
+    second.bus.stopIndex = 3;
+    first.progress.facts.push("chapter-two-complete");
+    const third = initializeChapterThree(second, first.progress);
+    const save = createSaveData({
+      playerName: "陈舟",
+      stats: initialStats(),
+      currentNodeId: null,
+      currentBackground: "classroom",
+      portraitVisible: false,
+      sceneLabel: "第三章",
+      timeLabel: "返校第一天",
+      history: [],
+      settings: { speed: 22, fontSize: 20, reducedMotion: false, skipRead: false },
+      mode: "story",
+      notebook: defaultNotebookState(),
+      promises: [],
+      decisionIds: [],
+      openingProfile: profile,
+      location: { kind: "chapter-three-leads" },
+      chapterOne: first.chapterOne,
+      chapterTwo: second,
+      chapterThree: third,
+      progress: first.progress
+    });
+    const parsed = parseSaveData(JSON.stringify(save), story);
+    expect(parsed?.location).toEqual({ kind: "chapter-three-leads" });
+    expect(parsed?.chapterThree).toEqual(third);
   });
 });

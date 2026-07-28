@@ -18,6 +18,6 @@ describe("chapter catalog", () => {
   it("unlocks the third-chapter hook only after the second chapter completes", () => {
     const chapterThree = CHAPTER_CATALOG.find((chapter) => chapter.id === "chapter-three")!;
     expect(chapterAvailability(["chapter-one-complete"], chapterThree)).toBe("locked");
-    expect(chapterAvailability(["chapter-two-complete"], chapterThree)).toBe("in-development");
+    expect(chapterAvailability(["chapter-two-complete"], chapterThree)).toBe("available");
   });
 });

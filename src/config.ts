@@ -8,19 +8,20 @@ import type {
   VisibleStatKey
 } from "./types";
 
-export const GAME_VERSION = "0.9.0";
+export const GAME_VERSION = "0.10.0";
 export const DEMO_URL = "https://rikka060921.github.io/After-the-Final-Bell/";
 export const REPOSITORY_URL = "https://github.com/rikka060921/After-the-Final-Bell";
-export const SAVE_VERSION = 4 as const;
-export const SAVE_KEY = "after-evening-study-save-v4";
+export const SAVE_VERSION = 5 as const;
+export const SAVE_KEY = "after-evening-study-save-v5";
 export const MANUAL_SAVE_KEYS = {
   "slot-1": "after-evening-study-manual-save-1",
   "slot-2": "after-evening-study-manual-save-2",
   "slot-3": "after-evening-study-manual-save-3"
 } as const;
-export const PREVIOUS_SAVE_KEY = "after-evening-study-save-v3";
-export const FOUNDATION_SAVE_KEY = "after-evening-study-save-v2";
-export const LEGACY_SAVE_KEY = "after-evening-study-demo-save-v1";
+export const PREVIOUS_SAVE_KEY = "after-evening-study-save-v4";
+export const FOUNDATION_SAVE_KEY = "after-evening-study-save-v3";
+export const LEGACY_SAVE_KEY = "after-evening-study-save-v2";
+export const ORIGINAL_SAVE_KEY = "after-evening-study-demo-save-v1";
 
 export const backgrounds: Record<BackgroundKey, string> = {
   classroom: new URL("../assets/images/classroom-dusk.png", import.meta.url).href,

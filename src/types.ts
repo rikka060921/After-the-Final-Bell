@@ -64,6 +64,10 @@ export type ChapterTwoPhase = "result-letter" | "async-message" | "bus-route" | 
 export type ResultFramingId = "full-context" | "progress-first" | "pressure-first";
 export type AsyncMessageId = "ask-plan" | "leave-space" | "promise-solve";
 export type BusActionId = "buy-breakfast" | "wait" | "walk" | "express";
+export type ChapterThreePhase = "lead-board" | "testimony-board" | "privacy-choice" | "complete";
+export type InvestigationLeadId = "office-copy" | "guo-route" | "liang-version" | "zhou-boundary" | "song-desk";
+export type TestimonyId = "copy-edge" | "copy-time" | "guo-admission" | "liang-story" | "zhou-refusal" | "song-absence";
+export type PrivacyChoiceId = "expose-plan" | "teacher-with-parties" | "stop-investigation" | "take-all-blame";
 
 export type GameStats = Record<StatKey, number>;
 export type StatEffects = Partial<Record<StatKey, number>>;
@@ -187,7 +191,11 @@ export type GameLocation =
   | { kind: "chapter-two-result" }
   | { kind: "chapter-two-message" }
   | { kind: "chapter-two-bus" }
-  | { kind: "chapter-two-complete" };
+  | { kind: "chapter-two-complete" }
+  | { kind: "chapter-three-leads" }
+  | { kind: "chapter-three-testimony" }
+  | { kind: "chapter-three-privacy" }
+  | { kind: "chapter-three-complete" };
 
 export interface ChapterOneSlot {
   id: string;
@@ -332,6 +340,21 @@ export interface ChapterTwoState {
   resolvedEventIds: string[];
 }
 
+export interface ChapterThreeState {
+  schemaVersion: 1;
+  phase: ChapterThreePhase;
+  pointsLeft: number;
+  leadIds: InvestigationLeadId[];
+  testimonyOrder: TestimonyId[];
+  evidenceQuality: "pending" | "clear" | "mixed" | "confused";
+  privacyChoice: PrivacyChoiceId | null;
+  zhouDistance: number;
+  privacyExposure: number;
+  outcome: "pending" | "procedural" | "protected" | "exposed" | "absorbed";
+  log: string[];
+  resolvedEventIds: string[];
+}
+
 export interface SaveDataV1 {
   version: 1;
   playerName: string;
@@ -370,7 +393,12 @@ export interface SaveDataV4 extends Omit<SaveDataV3, "version" | "currentNodeId"
   progress: LongTermProgress;
 }
 
-export type AnySaveData = SaveDataV1 | SaveDataV2 | SaveDataV3 | SaveDataV4;
+export interface SaveDataV5 extends Omit<SaveDataV4, "version"> {
+  version: 5;
+  chapterThree: ChapterThreeState | null;
+}
+
+export type AnySaveData = SaveDataV1 | SaveDataV2 | SaveDataV3 | SaveDataV4 | SaveDataV5;
 
 export interface StatChange {
   key: StatKey;

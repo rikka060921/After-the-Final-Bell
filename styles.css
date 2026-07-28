@@ -759,6 +759,27 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color
 .week-challenge-outcome h3 { margin: 0; color: var(--amber-soft); font-size: var(--ui-body-size); }
 .week-challenge-outcome p { flex: 1; margin: 0; color: #a9bac5; font-size: var(--ui-small-size); line-height: 1.55; }
 .challenge-log { display: grid; gap: 7px; max-height: 180px; margin: 18px 0 0; padding: 14px 14px 14px 34px; overflow-y: auto; border-top: 1px solid var(--line); color: #8498a5; font-size: var(--ui-small-size); line-height: 1.5; }
+.chapter-three-shell { max-width: 1040px; }
+.investigation-toolbar { display:flex; justify-content:space-between; gap:18px; margin:20px 0 12px; color:#8ea1ad; font-size:var(--ui-small-size); }
+.investigation-toolbar strong { color:var(--amber-soft); }
+.investigation-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.investigation-lead { display:grid; gap:7px; min-height:150px; padding:15px; border:1px solid var(--line); background:rgba(9,22,36,.82); color:#dbe5ea; text-align:left; cursor:pointer; }
+.investigation-lead:hover:not(:disabled) { border-color:var(--amber); }
+.investigation-lead:disabled { opacity:.58; cursor:default; }
+.investigation-lead span { color:var(--amber-soft); font-size:var(--ui-caption-size); }
+.investigation-lead strong { font-size:var(--ui-body-size); }
+.investigation-lead small { color:#91a4b0; font-size:var(--ui-small-size); line-height:1.55; }
+.testimony-board { display:grid; gap:9px; margin:20px 0; padding:0; list-style:none; }
+.testimony-row { display:grid; grid-template-columns:34px minmax(0,1fr) 40px; gap:12px; align-items:center; padding:13px; border:1px solid var(--line); background:rgba(9,22,36,.82); }
+.testimony-rank { color:var(--amber-soft); font-size:var(--ui-lead-size); font-weight:700; text-align:center; }
+.testimony-row strong { color:#dbe5ea; font-size:var(--ui-small-size); }
+.testimony-row p { margin:4px 0; color:#aebdc6; font-size:var(--ui-small-size); line-height:1.45; }
+.testimony-row small { color:#718692; font-size:var(--ui-caption-size); }
+.testimony-controls { display:grid; gap:5px; }
+.testimony-controls .icon-btn { width:36px; height:32px; border:1px solid var(--line); background:rgba(255,255,255,.03); color:#dce6eb; cursor:pointer; }
+.testimony-controls .icon-btn:disabled { opacity:.25; cursor:default; }
+.testimony-submit { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+.testimony-submit p { color:#8397a4; font-size:var(--ui-small-size); }
 .seat-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .42fr); gap: 18px; margin-top: 20px; }
 .seat-layout > section { min-width: 0; }
 .seat-map-wrap { overflow-x: auto; }
